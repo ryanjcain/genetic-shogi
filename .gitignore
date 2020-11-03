@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C++ executable ready by python
+*.so
+
+# VSCode configs
+.vscode/
+
+# Mac OS display cache
+.DS_Store
+
+# Python virtual environment packages (can install via requirements.txt)
+venv/
+
+# My own local backups directory used prior to git
+backups/
+
+# Any logfiles for the running of the genetic algorithms
+*.log
+
+# OpenGA C++ libraries (for now)
+cpp/openGA-1.0.3/
+
