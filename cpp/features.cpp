@@ -1,8 +1,6 @@
 #include "features.hpp"
 #include <omp.h>
 
-
-
 // Bit of a mess, should break up into other files and organize 
 // with better OOP principles
 
@@ -460,11 +458,16 @@ char int evaluate_organism(int* weights)
     int positions = 0;
 
     // Uncomment for timing during featuresTests
-    // auto start = high_resolution_clock::now();
+    auto start = high_resolution_clock::now();
+    int count = 0;
+    for (auto& game : TRAIN) {
+        count++;
+    }
+    cout << "-- Training Data: " << count << " --" << endl;
 
-    // for (auto& game : TRAIN) {
-    for (int i = 0; i < 5; i++) {
-        auto game = TRAIN[i];
+    for (auto& game : TRAIN) {
+    /* for (int i = 0; i < 100; i++) { */
+        /* auto game = TRAIN[i]; */
         string board = game.first;
         int grandmaster_move = game.second;
         
@@ -498,29 +501,27 @@ char int evaluate_organism(int* weights)
         // Make the grandmaster move and see resulting score to mke comparison
         s.MakeMove(grandmaster_move);
         int grandm_score = H.evaluate(s, weights, root_player); 
-        // cout << "guess: " << highest_score << " grandmaster: " << grandm_score << endl;
+        /* cout << "guess: " << highest_score << " grandmaster: " << grandm_score << endl; */
         // See if we picked the same move as grandmaster
         if (highest_score == grandm_score)
             correct++;
     }
 
     // Uncomment for timing during featuresTests
-    // auto stop = high_resolution_clock::now(); 
-    // auto duration = duration_cast<seconds>(stop - start); 
-    // cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "s" << endl;
+    auto stop = high_resolution_clock::now(); 
+    auto duration = duration_cast<seconds>(stop - start); 
+    cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "s" << endl;
     
     // Overall fitness is the square of total number of correct moves
-    return (correct * correct);
-
+    /* return (correct * correct); */
+    return correct;
 }
 
 
 int main() {
-
     // Used if making featuresTests
     int weights[NUM_FEATURES] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
     int correct = evaluate_organism(weights);
     cout << "Guessed: " << correct << endl;
-
 }

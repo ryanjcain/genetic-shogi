@@ -3,14 +3,12 @@
 #include <chrono> 
 #include <numeric>
 #include <map>
-
-static const string lmcache = "/Users/ryanjcain 1/Desktop/Yale/Spring 2020/Games/shogi/json/legal_moves_cache_raw.json";
-static const string train_in = "/Users/ryanjcain 1/Desktop/Yale/Spring 2020/Games/shogi/json/train_data_raw.json";
+#include <iostream>
 
 // For timing execution
-using namespace std::chrono; 
+using namespace std::chrono;
 
-vector<pair<string, int>> to_array(string in_file);
+vector<pair<string, int>> loadGames(string in_file);
 
 class ShogiFeatures {
     public:
@@ -36,24 +34,34 @@ class ShogiFeatures {
         void controlled_squares(Shogi& s, int player, vector<int>& featVec);
         void castle(Shogi& s, int player, vector<int>& featVec);
         void board_shape(Shogi& s, int player, vector<int>& featVec);
-
-
 };
 
-vector<pair<string, int>> to_array(string in_file) {
-    ifstream fin(in_file);
+/* -------------- Load train, test, moves cache into memory --------------- */
 
-    json j;
-    fin >> j;
+/* "Double expansion" used to get correct paths from make file -D arguments */
+#define STR1(x)  #x
+#define STR(x)  STR1(x)
 
-    vector<pair<string, int>> result;
-    for (auto& item : j) {
-        pair<string, int>game = {item["board"], item["pmove"]};
-        result.push_back(game);
-    }
-    return result;
+/**
+ * 
+ * Function to load json file of training data into program memory.
+ * Json file is created by python script sample.py and saved in the format
+ *          {board_state : grandmaster_move}
+ */
+vector<pair<string, int>> loadGames(string file_name) {
+  ifstream fin(file_name);
+  json j;
+  fin >> j;
 
+  vector<pair<string, int>> result;
+  for (auto &item : j) {
+    pair<string, int> game = {item["board"], item["pmove"]};
+    result.push_back(game);
+  }
+  return result;
 };
 
-extern const auto TRAIN = to_array(train_in);
+static const string lmcache = STR(MOVES_FILE);
+extern const auto TRAIN = loadGames(STR(TRAIN_FILE));
+extern const auto TEST = loadGames(STR(TEST_FILE));
 extern const int NUM_FEATURES = 20;
