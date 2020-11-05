@@ -3,8 +3,19 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C++ executable ready by python
+# Local vim commands and settings
+.vim/
+
+# C++ shared executables and object files
+*.gch
+*.o
 *.so
+
+# C++ compile commands for language server
+cpp/compile_commands.json
+
+# OpenGA C++ libraries (for now)
+cpp/openGA-1.0.3/
 
 # VSCode configs
 .vscode/
@@ -20,7 +31,4 @@ backups/
 
 # Any logfiles for the running of the genetic algorithms
 *.log
-
-# OpenGA C++ libraries (for now)
-cpp/openGA-1.0.3/
 
