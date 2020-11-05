@@ -6,10 +6,11 @@ __pycache__/
 # Local vim commands and settings
 .vim/
 
-# C++ shared executables and object files
+# C++ executables shared or otherwise and object files
 *.gch
 *.o
 *.so
+*.test
 
 # C++ compile commands for language server
 cpp/compile_commands.json

@@ -7,8 +7,11 @@ TEST_FILE=$(DATA_DIR)/test_data_raw.json
 MOVES_FILE=$(DATA_DIR)/legal_moves_cache_raw.json
 
 ### ------------------- Target Configurations -------------------    
-
-CXX=g++-9
+ifeq (, $(shell which g++-9))
+	CXX=g++
+else
+	CXX=g++-9
+endif
 CXXFLAGS= -g3 -O3 -std=c++11 -fopenmp
 CXXFLAGS_SO= -g3 -O3 -std=c++11 -fopenmp -fPIC -shared
 
@@ -21,7 +24,7 @@ shogilib.so: features.o lmcache.o helper.o shogi.o
 	@echo
 	@echo "FINISHED"
 
-featuresTest: features.o lmcache.o helper.o shogi.o
+features.test: features.o lmcache.o helper.o shogi.o
 	@echo "----- Creating Feature Test -----------"
 	${CXX} ${CXXFLAGS} -o $@ $^
 	@echo
