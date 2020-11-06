@@ -506,7 +506,7 @@ if __name__ == "__main__":
         progressbar.AdaptiveETA(), ') ',
         progressbar.Percentage()
     ]
-    bar = progressbar.ProgressBar(maxval=len(train), widgets=widgets)
+    bar = progressbar.ProgressBar(maxval=len(selection), widgets=widgets)
     completed_games = 0
     total_positions = 0
 
