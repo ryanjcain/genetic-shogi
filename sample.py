@@ -425,9 +425,15 @@ if __name__ == "__main__":
         help=
         "Selection method, either: sr (single random) or srr (single random random)"
     )
-    parser.add_argument("--out",
+    parser.add_argument("--cache",
                         type=str,
-                        help="File to store the expanded game data to")
+                        help="Desired filename store the cache of legal moves reachable from all sampled positions: NO '/' allowed.")
+    parser.add_argument("--testOut",
+                        type=str,
+                        help="Desired filename storing the test positions: NO '/' allowed.")
+    parser.add_argument("--trainOut",
+                        type=str,
+                        help="Desired filename to store the train positions: NO '/' allowed.")
     parser.add_argument("--type",
                         type=str,
                         help="Output file type. Supports [pickle, json]")
@@ -506,7 +512,7 @@ if __name__ == "__main__":
 
     # Cache to store all of the legal moves for all the N sample positions
     legal_moves_cache = dict()
-    for game in train:
+    for game in selection:
         pos, move = game[0], game[1]
         board = shogi.Board(pos)
 
@@ -547,7 +553,11 @@ if __name__ == "__main__":
 
     bar.finish()
 
-    print("-------------- Saving Caches to /obj ---------------")
+    dest = "/json"
+    if args.type == "pickle":
+        dest = "/obj"
+
+    print("-------------- Saving Caches to {} ---------------".format(dest))
 
     # Last minute conversiion of move types if requested int not usi
     if args.move == 'int':
@@ -561,8 +571,8 @@ if __name__ == "__main__":
 
     if args.type == "pickle":
         save_obj(legal_moves_cache, args.out)
-        save_obj(train, "train_data")
-        save_obj(test, "test_data")
+        save_obj(train, args.trainOut)
+        save_obj(test, args.testOut)
 
     elif args.type == "json":
 
@@ -598,13 +608,13 @@ if __name__ == "__main__":
             json_tests.append(tests_entry)
 
         # Save them to appropriate files
-        with open('json/' + args.out + '_raw.json', 'w') as fp:
+        with open('json/' + args.cache + '.json', 'w') as fp:
             json.dump(json_cache, fp)
 
-        with open('json/train_data_raw.json', 'w') as fp:
+        with open('json/' + args.trainOut + '.json', 'w') as fp:
             json.dump(json_train, fp)
 
-        with open('json/test_data_raw.json', 'w') as fp:
+        with open('json/' + args.testOut + '.json', 'w') as fp:
             json.dump(json_tests, fp)
 
     print("-------------- Statistics from Games ---------------")

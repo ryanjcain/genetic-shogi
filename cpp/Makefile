@@ -61,4 +61,4 @@ lmcache.o: lmcache.cpp lmcache.hpp
 
 ###--------CLEAN-UP--------------###
 clean:
-	$(RM) -r shogiTest featuresTest lmcache *.o *.gch *.dSYM *.so
+	$(RM) -r shogiTest *.test lmcache *.o *.gch *.dSYM *.so

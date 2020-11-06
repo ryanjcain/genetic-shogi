@@ -173,6 +173,7 @@ ShogiFeatures::ShogiFeatures(string cache_file) {
 
 }
 
+int hits = 0;
 // Read evolution.py to see explenation of these features
 int ShogiFeatures::evaluate(Shogi s, int* weights, int player) {
     /* Evaluate the shogi position s from the perspective
@@ -188,6 +189,7 @@ int ShogiFeatures::evaluate(Shogi s, int* weights, int player) {
 
     // See if the feature value already in transposition table
     if (tt.count(game_state)) {
+        hits++;
         fV = tt.at(game_state);
     } else {
         // Reserve memory and populate feature vector
@@ -475,9 +477,9 @@ char int evaluate_organism(int* weights)
     // Uncomment for timing during featuresTests
     auto start = high_resolution_clock::now();
 
-    /* for (auto& game : TRAIN) { */
-    for (int i = 0; i < 5; i++) {
-        auto game = TRAIN[i];
+    for (auto& game : TRAIN) {
+    /* for (int i = 0; i < 100; i++) { */
+        /* auto game = TRAIN[i]; */
         string board = game.first;
         int grandmaster_move = game.second;
         
@@ -494,7 +496,7 @@ char int evaluate_organism(int* weights)
         
         // Loop through all possible resulting states and do a 1ply search for best move
         int highest_score = 0;
-        #pragma omp parallel for reduction(max:highest_score)
+        /* #pragma omp parallel for reduction(max:highest_score) */
         for (auto& action : H.cache.legal_moves[board]) {
 
             int move = action.first;
@@ -521,6 +523,8 @@ char int evaluate_organism(int* weights)
     auto stop = high_resolution_clock::now(); 
     auto duration = duration_cast<milliseconds>(stop - start); 
     cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl;
+    cout << "Hits: " << hits << endl;
+    hits = 0;
     
     // Overall fitness is the square of total number of correct moves
     /* return (correct * correct); */
@@ -532,8 +536,10 @@ int main() {
     // Used if making featuresTests
     int weights[NUM_FEATURES] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
-    int correct1 = evaluate_organism(weights);
-    cout << "Guessed: " << correct1 << endl;
-    int correct2 = evaluate_organism(weights);
-    cout << "Guessed: " << correct2 << endl;
+    for (int i = 0; i < 5; i++) {
+        int correct1 = evaluate_organism(weights);
+        /* cout << "Guessed: " << correct1 << endl; */
+        /* cout << "Hits: " << hits << endl; */
+        hits = 0;
+    }
 }

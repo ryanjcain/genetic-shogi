@@ -186,6 +186,7 @@ def eaSimple(population,
 
     # Begin the main genertional process
     for gen in range(1, ngen + 1):
+        print("---------- Generation {} ---------- ".format(gen))
         # Implement elitism, save the best member from each generation
         elitist = toolbox.clone(
             max(population, key=lambda ind: ind.fitness.values))

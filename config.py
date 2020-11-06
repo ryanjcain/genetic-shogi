@@ -4,7 +4,7 @@
 EVAL_LANG = "C++"
 # EVAL_LANG = "Python"
 
-PY_MULTIPROCESSING = True       # Gives organism level parallelization
+PY_MULTIPROCESSING = False       # Gives organism level parallelization
                                 # Further game level thread concurrency (Open MP)
                                 # default when using C++ evaluation (uses Open MP)
 
@@ -16,7 +16,7 @@ N = 1000
 POP_SIZE = 10               # 100 (size used in GA chess paper)
 CXPB = 0.75
 MUTPB = 0.005
-N_GEN = 3                   # 200 (gens used in GA chess paper)
+N_GEN = 5                   # 200 (gens used in GA chess paper)
 
 
 ############################# LIBRARIES, CACHING, LOGGING ############################
