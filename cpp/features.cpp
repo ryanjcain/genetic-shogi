@@ -178,20 +178,35 @@ int ShogiFeatures::evaluate(Shogi s, int* weights, int player) {
     /* Evaluate the shogi position s from the perspective
         of @player (SENTE or GOTE)
     */
+
     int NUM_FEATURES = 20;
+    vector<unsigned char> game_state = s.SaveGame();
 
     // Feature vector
     vector<int> fV;
     fV.reserve(NUM_FEATURES);         
 
-    // Populate the result vector with evaluation of all features
-    material(s, player, fV);
-    king_safety(s, player, fV);
-    pieces_in_hand(s, player, fV);
-    controlled_squares(s, player, fV);
-    castle(s, player, fV);
-    board_shape(s, player, fV);
+    // See if the feature value already in transposition table
+    if (tt.count(game_state)) {
+        fV = tt.at(game_state);
+    } else {
+        // Reserve memory and populate feature vector
+        /* fV.reserve(NUM_FEATURES); */
 
+        // Individual feature calculations
+        material(s, player, fV);
+        king_safety(s, player, fV);
+        pieces_in_hand(s, player, fV);
+        controlled_squares(s, player, fV);
+        castle(s, player, fV);
+        board_shape(s, player, fV);
+
+        // Add the feature to the transposition table
+        tt.insert({game_state, fV});
+    }
+
+
+    // Calculate heuristic score based on weights
     int score = 0;
     for (int i = 0; i < NUM_FEATURES; i++) {
         score += fV[i] * weights[i];
@@ -459,15 +474,10 @@ char int evaluate_organism(int* weights)
 
     // Uncomment for timing during featuresTests
     auto start = high_resolution_clock::now();
-    int count = 0;
-    for (auto& game : TRAIN) {
-        count++;
-    }
-    cout << "-- Training Data: " << count << " --" << endl;
 
-    for (auto& game : TRAIN) {
-    /* for (int i = 0; i < 100; i++) { */
-        /* auto game = TRAIN[i]; */
+    /* for (auto& game : TRAIN) { */
+    for (int i = 0; i < 5; i++) {
+        auto game = TRAIN[i];
         string board = game.first;
         int grandmaster_move = game.second;
         
@@ -477,7 +487,7 @@ char int evaluate_organism(int* weights)
         Shogi s;
         s.Init();
         s.LoadGame(gamecode);
-        s.FetchMove(3);
+        /* s.FetchMove(3); */
 
         // Set the root player so we evaluate heuristic from right perspective
         int root_player = (s.round & 1);
@@ -489,7 +499,7 @@ char int evaluate_organism(int* weights)
 
             int move = action.first;
 
-            // Initialize new board and make the move
+            /* // Initialize new board and make the move */
             Shogi ns = s;
             ns.MakeMove(move);
 
@@ -498,7 +508,7 @@ char int evaluate_organism(int* weights)
             highest_score = score > highest_score ? score : highest_score;
         }
 
-        // Make the grandmaster move and see resulting score to mke comparison
+        // Make the grandmaster move and see resulting score to make comparison
         s.MakeMove(grandmaster_move);
         int grandm_score = H.evaluate(s, weights, root_player); 
         /* cout << "guess: " << highest_score << " grandmaster: " << grandm_score << endl; */
@@ -509,8 +519,8 @@ char int evaluate_organism(int* weights)
 
     // Uncomment for timing during featuresTests
     auto stop = high_resolution_clock::now(); 
-    auto duration = duration_cast<seconds>(stop - start); 
-    cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "s" << endl;
+    auto duration = duration_cast<milliseconds>(stop - start); 
+    cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl;
     
     // Overall fitness is the square of total number of correct moves
     /* return (correct * correct); */
@@ -522,6 +532,8 @@ int main() {
     // Used if making featuresTests
     int weights[NUM_FEATURES] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
-    int correct = evaluate_organism(weights);
-    cout << "Guessed: " << correct << endl;
+    int correct1 = evaluate_organism(weights);
+    cout << "Guessed: " << correct1 << endl;
+    int correct2 = evaluate_organism(weights);
+    cout << "Guessed: " << correct2 << endl;
 }

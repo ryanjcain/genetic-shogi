@@ -22,6 +22,8 @@ class ShogiFeatures {
         map<string, string> white_castles;
         int CASTLE_THRESHOLD;
 
+        // Add a transpossition table to store feature vector values
+        map<vector<unsigned char>, vector<int>> tt;
 
 
         int evaluate(Shogi s, int* weights, int root_player);
