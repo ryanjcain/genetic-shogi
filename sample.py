@@ -448,7 +448,12 @@ if __name__ == "__main__":
         "--hex",
         type=bool,
         default=False,
-        help="Convert positions from sfen to hex string representaiton.")
+        help="[True | False] - Whether or not to convert positions from sfen to hex string representaiton.")
+    parser.add_argument(
+        "--includeResultPos",
+        type=bool,
+        default=False,
+        help="[True | False] - Whether or not to include representation of resulting move in the cache. False by default.")
     parser.add_argument("--move",
                         type=str,
                         default='usi',
@@ -527,13 +532,17 @@ if __name__ == "__main__":
             elif args.move == 'int':
                 move = usi_to_int(move.usi())
 
-            # Store usi move and a new board object of the resulting position
-            if args.hex:
-                # Hex string representation
-                action = (move, encodePosHex(resulting_pos_str))
-            else:
-                # Standard python shogi board object representation
-                action = (move, shogi.Board(resulting_pos_str))
+            # Determine if we want to save the representation of resulting pos or just move
+            action = (move, '')
+            if args.includeResultPos:
+
+                # Store usi move and a new board object of the resulting position
+                if args.hex:
+                    # Hex string representation
+                    action = (move, encodePosHex(resulting_pos_str))
+                else:
+                    # Standard python shogi board object representation
+                    action = (move, shogi.Board(resulting_pos_str))
 
             actions.append(action)
 
