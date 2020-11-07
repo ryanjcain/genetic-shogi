@@ -107,7 +107,7 @@ char int evaluate_organism(int* weights)
     auto start = high_resolution_clock::now();
 
     for (auto& game : TRAIN) {
-    /* for (int i = 0; i < 100; i++) { */
+    /* for (int i = 0; i < 2000; i++) { */
         /* auto game = TRAIN[i]; */
         string board = game.first;
         int grandmaster_move = game.second;
@@ -129,9 +129,12 @@ char int evaluate_organism(int* weights)
     // Uncomment for timing during featuresTests
     auto stop = high_resolution_clock::now(); 
     auto duration = duration_cast<milliseconds>(stop - start); 
-    /* cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl; */
-    /* cout << "Evaluated H() for 100 games, took " << duration.count() << "ms" << endl; */
+    cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl;
+    /* cout << "Evaluated H() for 2000 games, took " << duration.count() << "ms" << endl; */
     
+		// Remember to mark the cache as being full after first execution
+		evaluator.update_tt_status(true);
+
     // Overall fitness is the square of total number of correct moves
     return (correct * correct);
     /* return correct; */

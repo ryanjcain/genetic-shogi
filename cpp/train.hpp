@@ -14,6 +14,7 @@ class OrganismEvaluator {
 		int select_synchronous(string board, int* weights);
 		int select_parallel(string board, int* weights);
 		bool feature_cache_loaded() { return tt_full; };
+		void update_tt_status(bool status) { tt_full = status; };
 
 	private:
 		MovesCache cache;

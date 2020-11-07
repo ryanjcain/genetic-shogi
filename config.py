@@ -13,11 +13,10 @@ PY_MULTIPROCESSING = False       # Gives organism level parallelization
 N = 1000
 
 # Set the constants for our genetic algorithm
-POP_SIZE = 10               # 100 (size used in GA chess paper)
+POP_SIZE = 100               # 100 (size used in GA chess paper)
 CXPB = 0.75
 MUTPB = 0.005
-N_GEN = 5                   # 200 (gens used in GA chess paper)
-
+N_GEN = 200                   # 200 (gens used in GA chess paper)
 
 ############################# LIBRARIES, CACHING, LOGGING ############################
 #############################        DO NOT CHANGE        ############################
