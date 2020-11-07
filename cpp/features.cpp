@@ -1,41 +1,10 @@
 #include "features.hpp"
 #include <omp.h>
 
-// Bit of a mess, should break up into other files and organize 
-// with better OOP principles
+ShogiFeatures::ShogiFeatures() {
 
-// Turn the given json file into a C++ vector
-// vector<pair<string, int>> to_array(string in_file) {
-//     ifstream fin(in_file);
-
-//     json j;
-//     fin >> j;
-
-//     vector<pair<string, int>> result;
-//     for (auto& item : j) {
-//         pair<string, int>game = {item["board"], item["pmove"]};
-//         result.push_back(game);
-//     }
-//     return result;
-
-// }
-
-vector<unsigned char> UvectorHexload(string s){
-	vector<unsigned char> c;
-	c.reserve(s.length()/2);
-	for(int i=0;i<s.length();i+=2){
-		char v = 0;
-		v += (s[i] - (s[i] >= 'A' ? ('A'-10) : ('0')))*16;
-		v += (s[i+1] - (s[i+1] >= 'A' ? ('A'-10) : ('0')));
-		c.push_back(v);
-	}
-	return c;
-}
-
-ShogiFeatures::ShogiFeatures(string cache_file) {
-    // Initialize the cache
-    // if (cache_init)
-    cache.Init(cache_file);
+    // Initialize weights to null if not provided
+    weights = NULL;
 
     // Initialize a piece map, convert from int encoding to string
     piece_map = {
@@ -171,42 +140,29 @@ ShogiFeatures::ShogiFeatures(string cache_file) {
 
     CASTLE_THRESHOLD = 2;
 
+    NUM_FEATURES = 20;
+
 }
 
 int hits = 0;
+
 // Read evolution.py to see explenation of these features
-int ShogiFeatures::evaluate(Shogi s, int* weights, int player) {
+int ShogiFeatures::evaluate(Shogi s, int player) {
     /* Evaluate the shogi position s from the perspective
         of @player (SENTE or GOTE)
     */
-
-    int NUM_FEATURES = 20;
-    vector<unsigned char> game_state = s.SaveGame();
 
     // Feature vector
     vector<int> fV;
     fV.reserve(NUM_FEATURES);         
 
-    // See if the feature value already in transposition table
-    if (tt.count(game_state)) {
-        hits++;
-        fV = tt.at(game_state);
-    } else {
-        // Reserve memory and populate feature vector
-        /* fV.reserve(NUM_FEATURES); */
-
-        // Individual feature calculations
-        material(s, player, fV);
-        king_safety(s, player, fV);
-        pieces_in_hand(s, player, fV);
-        controlled_squares(s, player, fV);
-        castle(s, player, fV);
-        board_shape(s, player, fV);
-
-        // Add the feature to the transposition table
-        tt.insert({game_state, fV});
-    }
-
+    // Individual feature calculations
+    material(s, player, fV);
+    king_safety(s, player, fV);
+    pieces_in_hand(s, player, fV);
+    controlled_squares(s, player, fV);
+    castle(s, player, fV);
+    board_shape(s, player, fV);
 
     // Calculate heuristic score based on weights
     int score = 0;
@@ -215,6 +171,49 @@ int ShogiFeatures::evaluate(Shogi s, int* weights, int player) {
     }
 
     return score;
+}
+
+// Read evolution.py to see explenation of these features
+int ShogiFeatures::evaluate(Shogi s, int *test_weights, int player,
+                            map<vector<unsigned char>, vector<int>> &tt) {
+  /* Evaluate the shogi position s from the perspective
+      of @player (SENTE or GOTE)
+  */
+
+  int NUM_FEATURES = 20;
+  vector<unsigned char> game_state = s.SaveGame();
+
+  // Feature vector
+  vector<int> fV;
+  fV.reserve(NUM_FEATURES);
+
+  // See if the feature value already in transposition table
+  if (tt.count(game_state)) {
+    hits++;
+    fV = tt.at(game_state);
+  } else {
+    // Reserve memory and populate feature vector
+    /* fV.reserve(NUM_FEATURES); */
+
+    // Individual feature calculations
+    material(s, player, fV);
+    king_safety(s, player, fV);
+    pieces_in_hand(s, player, fV);
+    controlled_squares(s, player, fV);
+    castle(s, player, fV);
+    board_shape(s, player, fV);
+
+    // Add the feature to the transposition table
+    tt.insert({game_state, fV});
+  }
+
+  // Calculate heuristic score based on weights
+  int score = 0;
+  for (int i = 0; i < NUM_FEATURES; i++) {
+    score += fV[i] * test_weights[i];
+  }
+
+  return score;
 }
 
 void ShogiFeatures::material(Shogi& s, int player, vector<int>& featVec) {
@@ -401,7 +400,7 @@ void ShogiFeatures::castle(Shogi& s, int player, vector<int>& featVec) {
         // Ineffecient, but initialize a shogi object of the castle
         Shogi c;
         c.Init();
-        c.LoadGame(UvectorHexload(board));
+        c.LoadGame(load_hex_vector(board));
 
         // See if other pieces are within the threshold
         int incorrect = 0;
@@ -449,97 +448,3 @@ void ShogiFeatures::board_shape(Shogi& s, int player, vector<int>& featVec) {
 }
 
 
-// Simple functin to print cpp vector
-void print_vec(vector<int> vec) {
-    cout << "[ ";
-    for (auto& item : vec ){
-        cout << item << ", ";
-    }
-    cout << "]" << endl;
-}
-
-
-
-// Globals used in every evaluation (should make const)
-static ShogiFeatures H(lmcache);
-
-// Force export of C symbols to avoid C++ name cluttering
-#ifdef __cplusplus
-extern "C" int evaluate_organism(int* weights)
-#else
-char int evaluate_organism(int* weights)
-#endif
-{
-    // Loop through all of the training games
-    int correct = 0;
-    int positions = 0;
-
-    // Uncomment for timing during featuresTests
-    auto start = high_resolution_clock::now();
-
-    for (auto& game : TRAIN) {
-    /* for (int i = 0; i < 100; i++) { */
-        /* auto game = TRAIN[i]; */
-        string board = game.first;
-        int grandmaster_move = game.second;
-        
-        // Load the hex board representation
-        vector<unsigned char> gamecode = UvectorHexload(board);
-
-        Shogi s;
-        s.Init();
-        s.LoadGame(gamecode);
-        /* s.FetchMove(3); */
-
-        // Set the root player so we evaluate heuristic from right perspective
-        int root_player = (s.round & 1);
-        
-        // Loop through all possible resulting states and do a 1ply search for best move
-        int highest_score = 0;
-        /* #pragma omp parallel for reduction(max:highest_score) */
-        for (auto& action : H.cache.legal_moves[board]) {
-
-            int move = action.first;
-
-            /* // Initialize new board and make the move */
-            Shogi ns = s;
-            ns.MakeMove(move);
-
-            // Update highest score
-            int score = H.evaluate(ns, weights, root_player);
-            highest_score = score > highest_score ? score : highest_score;
-        }
-
-        // Make the grandmaster move and see resulting score to make comparison
-        s.MakeMove(grandmaster_move);
-        int grandm_score = H.evaluate(s, weights, root_player); 
-        /* cout << "guess: " << highest_score << " grandmaster: " << grandm_score << endl; */
-        // See if we picked the same move as grandmaster
-        if (highest_score == grandm_score)
-            correct++;
-    }
-
-    // Uncomment for timing during featuresTests
-    auto stop = high_resolution_clock::now(); 
-    auto duration = duration_cast<milliseconds>(stop - start); 
-    cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl;
-    cout << "Hits: " << hits << endl;
-    hits = 0;
-    
-    // Overall fitness is the square of total number of correct moves
-    /* return (correct * correct); */
-    return correct;
-}
-
-
-int main() {
-    // Used if making featuresTests
-    int weights[NUM_FEATURES] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-
-    for (int i = 0; i < 5; i++) {
-        int correct1 = evaluate_organism(weights);
-        /* cout << "Guessed: " << correct1 << endl; */
-        /* cout << "Hits: " << hits << endl; */
-        hits = 0;
-    }
-}

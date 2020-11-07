@@ -19,6 +19,10 @@ void prettify(string in_file, string out_file) {
 
 void MovesCache::Init(string file) {
     ifstream fin(file);
+    if (fin.fail()) {
+        cout << "Invalid file: " << file << endl;
+        exit(-1);
+    }
     
     json j;
     fin >> j;

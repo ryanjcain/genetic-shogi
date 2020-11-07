@@ -18,20 +18,21 @@ CXXFLAGS_SO= -g3 -O3 -std=c++11 -fopenmp -fPIC -shared
 all: shogilib.so
 
 shogilib.so: CXXFLAGS= $(CXXFLAGS_SO)
-shogilib.so: features.o lmcache.o helper.o shogi.o
+shogilib.so: train.o features.o lmcache.o helper.o shogi.o
 	@echo "----- Creating Shared Library ---------"
 	${CXX} ${CXXFLAGS} -o $@ $^
 	@echo
 	@echo "FINISHED"
 
-features.test: features.o lmcache.o helper.o shogi.o
-	@echo "----- Creating Feature Test -----------"
+train.test: train.o features.o lmcache.o helper.o shogi.o
+	@echo "-------- Creating Train Test -----------"
 	${CXX} ${CXXFLAGS} -o $@ $^
 	@echo
 	@echo "FINISHED"
 
+
 # Run to save a pretty version of cache/training data in /json 
-lmcache-pretty: lmcache.cpp
+lmcache-pretty: lmcache.cpp lmcache.hpp
 	${CXX} ${CXXFLAGS} -o $@ $^
 
 ### --------Object Files--------------###
@@ -41,13 +42,18 @@ shogi.o: shogi.cpp shogi.hpp
 	${CXX} ${CXXFLAGS} -c $^
 	@echo
 
-helper.o: helper.cpp shogi.hpp
+helper.o: helper.cpp helper.hpp
 	@echo "----- Building Helper Functions ------"
 	${CXX} ${CXXFLAGS} -c $^
 	@echo
 
 features.o: features.cpp features.hpp
 	@echo "----- Building Features Evaluator -----"
+	${CXX} ${CXXFLAGS} -c $^
+	@echo
+
+train.o: train.cpp train.hpp
+	@echo "----- Building Organism Evaluator -----"
 	${CXX} ${CXXFLAGS} -c $^ \
 		-D "TRAIN_FILE=$(TRAIN_FILE)" \
 		-D "TEST_FILE=$(TEST_FILE)" \

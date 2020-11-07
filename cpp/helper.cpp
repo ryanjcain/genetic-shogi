@@ -1,4 +1,4 @@
-#include "shogi.hpp"
+#include "helper.hpp"
 
 int posSuji(int pos){
 	return (pos / 9) + 1;
@@ -69,7 +69,26 @@ int watchupAttacker(int watchup){
 	return watchup % 40;
 }
 
-string IDPRES[8] = {"Foot", "Sliver", "Cassia", "Chariot", "Flying", "Angle", "King", "Gold"};
+void print_vec(vector<int> vec) {
+    cout << "[ ";
+    for (auto& item : vec ){
+        cout << item << ", ";
+    }
+    cout << "]" << endl;
+}
+
+vector<unsigned char> load_hex_vector(string hex) {
+  vector<unsigned char> c;
+  c.reserve(hex.length() / 2);
+  for (int i = 0; i < hex.length(); i += 2) {
+    char v = 0;
+    v += (hex[i] - (hex[i] >= 'A' ? ('A' - 10) : ('0'))) * 16;
+    v += (hex[i + 1] - (hex[i + 1] >= 'A' ? ('A' - 10) : ('0')));
+    c.push_back(v);
+  }
+  return c;
+}
+
 void printMove(int move){
 	int prePos = movePrepos(move);
 	int newPos = moveNewpos(move);
