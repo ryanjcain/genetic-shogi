@@ -2,9 +2,9 @@
 
 # Specify the name of the directory moves cache, test, and train data
 DATA_DIR=$(shell (dirname `pwd`))/json
-TRAIN_FILE=$(DATA_DIR)/train_data_raw.json
-TEST_FILE=$(DATA_DIR)/test_data_raw.json
-MOVES_FILE=$(DATA_DIR)/legal_moves_cache_raw.json
+TRAIN_FILE=$(DATA_DIR)/train_data_5000.json
+TEST_FILE=$(DATA_DIR)/test_data_5000.json
+MOVES_FILE=$(DATA_DIR)/legal_moves_cache_10000.json
 
 ### ------------------- Target Configurations -------------------    
 ifeq (, $(shell which g++-9))
