@@ -11,8 +11,10 @@ vector<pair<string, int>> loadGames(string in_file);
 class OrganismEvaluator {
 	public:
 		OrganismEvaluator(string moves_cache_file);
-		int select_synchronous(string board, int* weights, int& pos);
-		int select_parallel(string board, int* weights, int& pos);
+		void evaluate(int* weights, int& correct, int& positions);
+		int evaluate_synchronous(int* weights);
+		int evaluate_parallel(int* weights);
+		int select_move(string board, int* weights, int& pos);
 		bool feature_cache_loaded() { return tt_full; };
 		void update_tt_status(bool status) { tt_full = status; };
 

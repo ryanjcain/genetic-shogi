@@ -144,12 +144,7 @@ ShogiFeatures::ShogiFeatures() {
 
 }
 
-// Read evolution.py to see explenation of these features
-int ShogiFeatures::evaluate(Shogi s, int player) {
-    /* Evaluate the shogi position s from the perspective
-        of @player (SENTE or GOTE)
-    */
-
+vector<int> ShogiFeatures::generate_feature_vec(Shogi s, int player) {
     // Feature vector
     vector<int> fV;
     fV.reserve(NUM_FEATURES);         
@@ -162,7 +157,19 @@ int ShogiFeatures::evaluate(Shogi s, int player) {
     castle(s, player, fV);
     board_shape(s, player, fV);
 
-    // Calculate heuristic score based on weights
+    return fV;
+}
+
+// Read evolution.py to see explenation of these features
+int ShogiFeatures::evaluate(Shogi s, int player) {
+    /* Evaluate the shogi position s from the perspective
+        of @player (SENTE or GOTE)
+    */
+
+    // Feature vector
+    vector<int> fV = generate_feature_vec(s, player);
+
+    // Calculate heuristic score based internal weights
     int score = 0;
     for (int i = 0; i < NUM_FEATURES; i++) {
         score += fV[i] * weights[i];
@@ -172,47 +179,44 @@ int ShogiFeatures::evaluate(Shogi s, int player) {
 }
 
 // Read evolution.py to see explenation of these features
-int ShogiFeatures::evaluate(Shogi s, int *test_weights, int player,
-                            map<vector<unsigned char>, vector<int>> &tt, int& hits) {
-  /* Evaluate the shogi position s from the perspective
-      of @player (SENTE or GOTE)
-  */
+/* int ShogiFeatures::evaluate(Shogi s, int *test_weights, int player,*/
+/*                             map<vector<unsigned char>, vector<int>> &tt, int& hits) {*/
 
-  int NUM_FEATURES = 20;
-  vector<unsigned char> game_state = s.SaveGame();
+/*   int NUM_FEATURES = 20;*/
+/*   vector<unsigned char> game_state = s.SaveGame();*/
 
-  // Feature vector
-  vector<int> fV;
-  fV.reserve(NUM_FEATURES);
+/*   // Feature vector*/
+/*   vector<int> fV;*/
+/*   fV.reserve(NUM_FEATURES);*/
 
-  // See if the feature value already in transposition table
-  if (tt.count(game_state)) {
-    fV = tt.at(game_state);
-    hits++;
-  } else {
-    // Reserve memory and populate feature vector
-    /* fV.reserve(NUM_FEATURES); */
+/*   // See if the feature value already in transposition table*/
+/*   if (tt.count(game_state)) {*/
+/*     fV = tt.at(game_state);*/
+/*     hits++;*/
+/*   } else {*/
+/*     // Reserve memory and populate feature vector*/
+/*     fV.reserve(NUM_FEATURES); */
 
-    // Individual feature calculations
-    material(s, player, fV);
-    king_safety(s, player, fV);
-    pieces_in_hand(s, player, fV);
-    controlled_squares(s, player, fV);
-    castle(s, player, fV);
-    board_shape(s, player, fV);
+/*     // Individual feature calculations*/
+/*     material(s, player, fV);*/
+/*     king_safety(s, player, fV);*/
+/*     pieces_in_hand(s, player, fV);*/
+/*     controlled_squares(s, player, fV);*/
+/*     castle(s, player, fV);*/
+/*     board_shape(s, player, fV);*/
 
-    // Add the feature to the transposition table
-    tt.insert({game_state, fV});
-  }
+/*     // Add the feature to the transposition table*/
+/*     tt.insert({game_state, fV});*/
+/*   }*/
 
-  // Calculate heuristic score based on weights
-  int score = 0;
-  for (int i = 0; i < NUM_FEATURES; i++) {
-    score += fV[i] * test_weights[i];
-  }
+/*   // Calculate heuristic score based on weights*/
+/*   int score = 0;*/
+/*   for (int i = 0; i < NUM_FEATURES; i++) {*/
+/*     score += fV[i] * test_weights[i];*/
+/*   }*/
 
-  return score;
-}
+/*   return score;*/
+/* }*/
 
 void ShogiFeatures::material(Shogi& s, int player, vector<int>& featVec) {
     // Counts the number of pieces the current player has and returns them in the
