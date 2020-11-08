@@ -33,7 +33,7 @@ class ShogiFeatures {
         // Multiple methods for evaluate depending on use in training or search
         int evaluate(Shogi s, int root_player);
         int evaluate(Shogi s, int* test_weights, int root_player, \
-            map<vector<unsigned char>, vector<int>>& tt);
+            map<vector<unsigned char>, vector<int>>& tt, int& hits);
         // int evaluate(Shogi s, vector<int>& weights, int root_player);
         int num_features() { return NUM_FEATURES; }
 

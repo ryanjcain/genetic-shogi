@@ -20,7 +20,7 @@ Shogi OrganismEvaluator::load_game(string board) {
 }
 
 /* Function to return best move based on heuristic synchronously */
-int OrganismEvaluator::select_synchronous(string board, int* weights) {
+int OrganismEvaluator::select_synchronous(string board, int* weights, int& pos) {
 
 	// Initialize shogi object based on board and best score / move to 0
 	Shogi s = load_game(board);
@@ -30,6 +30,7 @@ int OrganismEvaluator::select_synchronous(string board, int* weights) {
   int player = (s.round & 1);
 
 	// Loop though synchrounously
+	int hits = 0;
 	for (auto &action : cache.legal_moves[board]) {
 		int move = action.first;
 
@@ -38,18 +39,23 @@ int OrganismEvaluator::select_synchronous(string board, int* weights) {
 		result.MakeMove(move);
 
 		// Update highest score and save feature vector (without weight) in transposition table
-		int score = heuristic.evaluate(result, weights, player, feature_tt);
+		int score = heuristic.evaluate(result, weights, player, feature_tt, hits);
 		if (score > best_score) {
 				best_score = score;
 				best_move = move;
 		}
+
+		pos++;
 	}
+	
+	/* cout << "Hits during synchronous: " << hits << endl; */
 
 	return best_move;
 }
 
 /* Function to return best move based on heuristic in parallel */
-int OrganismEvaluator::select_parallel(string board, int *weights) {
+int OrganismEvaluator::select_parallel(string board, int *weights, int& pos) {
+	cout << "Evaluating parallel" << endl;
 
 	// Initialize shogi obj and struct to hold best values during parallel execution
 	Shogi s = load_game(board);
@@ -83,6 +89,8 @@ int OrganismEvaluator::select_parallel(string board, int *weights) {
 				best_action.score = score;
 				best_action.move = move;
 		}
+
+		pos++;
 	}
 
 	return best_action.move;
@@ -106,18 +114,21 @@ char int evaluate_organism(int* weights)
     // Uncomment for timing during featuresTests
     auto start = high_resolution_clock::now();
 
-    for (auto& game : TRAIN) {
-    /* for (int i = 0; i < 2000; i++) { */
-        /* auto game = TRAIN[i]; */
+    /* for (auto& game : TRAIN) { */
+
+		#pragma omp parallel for reduction(+:correct,positions)
+    for (int i = 0; i < 2000; i++) {
+        auto game = TRAIN[i];
         string board = game.first;
         int grandmaster_move = game.second;
 				int selected_move = 0;
         
 				// First time running through training positions so cache feature vectors
 				if (!evaluator.feature_cache_loaded()) {
-					selected_move = evaluator.select_synchronous(board, weights);
+					selected_move = evaluator.select_synchronous(board, weights, positions);
 				} else {
-					selected_move = evaluator.select_parallel(board, weights);
+					selected_move = evaluator.select_synchronous(board, weights, positions);
+					/* selected_move = evaluator.select_parallel(board, weights, positions); */
 				}
 
 				// Compare selection with the choice of the grandmaster
@@ -133,7 +144,11 @@ char int evaluate_organism(int* weights)
     /* cout << "Evaluated H() for 2000 games, took " << duration.count() << "ms" << endl; */
     
 		// Remember to mark the cache as being full after first execution
+		cout << "Evaluated for " << positions << " positions" << endl;
+		cout << "updating tt status to full" << endl;
 		evaluator.update_tt_status(true);
+
+		positions = 0;
 
     // Overall fitness is the square of total number of correct moves
     return (correct * correct);
@@ -146,6 +161,7 @@ int main() {
     int weights[20] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
     for (int i = 0; i < 5; i++) {
+				cout << "'Generation' " << i << endl;
         int correct1 = evaluate_organism(weights);
         cout << "Guessed: " << correct1 << endl;
         /* cout << "Hits: " << hits << endl; */

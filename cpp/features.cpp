@@ -173,7 +173,7 @@ int ShogiFeatures::evaluate(Shogi s, int player) {
 
 // Read evolution.py to see explenation of these features
 int ShogiFeatures::evaluate(Shogi s, int *test_weights, int player,
-                            map<vector<unsigned char>, vector<int>> &tt) {
+                            map<vector<unsigned char>, vector<int>> &tt, int& hits) {
   /* Evaluate the shogi position s from the perspective
       of @player (SENTE or GOTE)
   */
@@ -188,6 +188,7 @@ int ShogiFeatures::evaluate(Shogi s, int *test_weights, int player,
   // See if the feature value already in transposition table
   if (tt.count(game_state)) {
     fV = tt.at(game_state);
+    hits++;
   } else {
     // Reserve memory and populate feature vector
     /* fV.reserve(NUM_FEATURES); */
