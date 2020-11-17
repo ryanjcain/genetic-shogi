@@ -12,8 +12,8 @@ class OrganismEvaluator {
 	public:
 		OrganismEvaluator(string moves_cache_file);
 		void evaluate(int* weights, int& correct, int& positions);
-		int evaluate_synchronous(int* weights);
-		int evaluate_parallel(int* weights);
+		int evaluate_synchronous(int* weights, int&pos);
+		int evaluate_parallel(int* weights, int&pos);
 		int select_move(string board, int* weights, int& pos);
 		bool feature_cache_loaded() { return tt_full; };
 		void update_tt_status(bool status) { tt_full = status; };
@@ -35,7 +35,7 @@ class OrganismEvaluator {
 #define STR(x)  STR1(x)
 
 /**
- * 
+ *
  * Function to load json file of training data into program memory.
  * Json file is created by python script sample.py and saved in the format
  *          {board_state : grandmaster_move}

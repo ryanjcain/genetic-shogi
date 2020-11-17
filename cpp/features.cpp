@@ -69,7 +69,7 @@ ShogiFeatures::ShogiFeatures() {
         {"aerial_tower", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000102FFFFFFFFFFFF000607FFFFFFFFFFFF00FFFFFF03000000000000000000000000000000000000"},
         {"fourth_edge_king", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0001FFFFFFFFFFFFFF000702FFFFFFFFFFFF0007FFFFFFFFFFFFFF0006FFFF03000000000000000000000000000000000000"}
     };
-        
+
     white_castles = {
         {"left_mino_white", "13FFFF10FFFFFFFFFF121610FFFFFFFFFFFFFF111510FFFFFFFFFF17FF10FFFFFFFFFFFFFF1710FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
         {"gold_fortress_white", "13FF10FFFFFFFFFFFF121610FFFFFFFFFFFFFF171110FFFFFFFFFFFFFF1710FFFFFFFFFFFFFFFF10FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
@@ -121,14 +121,14 @@ ShogiFeatures::ShogiFeatures() {
     //
     //          72 63 54 45 36 27 18 09 00
     //          73 .. .. .. .. .. .. .. 01
-    //          74 .. .. .. .. .. .. .. 02       
-    //          75 .. .. .. .. .. .. .. 03    
-    //          76 .. .. .. .. .. .. .. 04 
-    //          77 .. .. .. .. .. .. .. 05 
+    //          74 .. .. .. .. .. .. .. 02
+    //          75 .. .. .. .. .. .. .. 03
+    //          76 .. .. .. .. .. .. .. 04
+    //          77 .. .. .. .. .. .. .. 05
     //          78 .. .. .. .. .. .. .. 06
     //          79 .. .. .. .. .. .. .. 07
     //          80 71 62 53 44 35 26 17 08
-    
+
 
     gote_camp = {72, 63, 54, 45, 36, 27, 18,  9, 0,
                  73, 64, 55, 46, 37, 28, 19, 10, 1,
@@ -147,7 +147,7 @@ ShogiFeatures::ShogiFeatures() {
 vector<int> ShogiFeatures::generate_feature_vec(Shogi s, int player) {
     // Feature vector
     vector<int> fV;
-    fV.reserve(NUM_FEATURES);         
+    fV.reserve(NUM_FEATURES);
 
     // Individual feature calculations
     material(s, player, fV);
@@ -242,7 +242,7 @@ void ShogiFeatures::material(Shogi& s, int player, vector<int>& featVec) {
             int upgrade = gomakindUP(piece_type);
 
             string piece = piece_map[{id, upgrade}];
-            counts[piece]++; 
+            counts[piece]++;
         }
     }
 
@@ -261,7 +261,7 @@ void ShogiFeatures::king_safety(Shogi& s, int player, vector<int>& featVec) {
     // Get all of the valid squares surrounding the king
     // int player = s.round & 1;
     int opponent = (player ^ 1);
-    int king_pos = (player == SENTE) ? 
+    int king_pos = (player == SENTE) ?
                     s.gomaPos[s.SENTEKINGNUM] :
                     s.gomaPos[s.GOTEKINGNUM];
 
@@ -278,7 +278,7 @@ void ShogiFeatures::king_safety(Shogi& s, int player, vector<int>& featVec) {
 
     // Find adjacent squares
     vector<pair<int, int>> adjacent = {
-        {r-1,c-1}, {r-1,c}, {r-1,c+1}, {r,c-1}, 
+        {r-1,c-1}, {r-1,c}, {r-1,c+1}, {r,c-1},
         {r,c+1}, {r+1,c-1}, {r+1,c}, {r+1,c+1}};
 
 
@@ -310,18 +310,18 @@ void ShogiFeatures::king_safety(Shogi& s, int player, vector<int>& featVec) {
 
         // Threats
         threats += s.boardFixedAttacking[opponent][pos].size();
-        threats += s.boardFlowAttacking[opponent][pos].size();     
+        threats += s.boardFlowAttacking[opponent][pos].size();
     }
 
-    
+
     // Add to our feature vector
     featVec.push_back(defenders);
     featVec.push_back(escape_routes);
-    featVec.push_back(threats);  
+    featVec.push_back(threats);
 }
 
 void ShogiFeatures::pieces_in_hand(Shogi& s, int player, vector<int>& featVec) {
-    
+
     // int player = (s.round & 1);
     int piece_cnt = 0;
 
@@ -356,7 +356,7 @@ void ShogiFeatures::controlled_squares(Shogi& s, int player, vector<int>& featVe
             }
     }
 
-    // Find "out-camp-attack", num of squares in opp camp that are 
+    // Find "out-camp-attack", num of squares in opp camp that are
     //  more attacked than defended
     int vulnerable = 0;
     for (int pos : oppn_camp) {
@@ -384,16 +384,16 @@ void ShogiFeatures::controlled_squares(Shogi& s, int player, vector<int>& featVe
 }
 
 void ShogiFeatures::castle(Shogi& s, int player, vector<int>& featVec) {
-    
+
     // int player = (s.round & 1);
 
-    map<string, string>& castles = (player == SENTE) ? 
+    map<string, string>& castles = (player == SENTE) ?
                                     black_castles : white_castles;
-    
-    int king_pos = (player == SENTE) ? 
+
+    int king_pos = (player == SENTE) ?
                 s.gomaPos[s.SENTEKINGNUM] :
                 s.gomaPos[s.GOTEKINGNUM];
-    
+
 
     // Determine if we are within the threshold of at least one proper castle
     for (auto& entry : castles) {
@@ -408,7 +408,7 @@ void ShogiFeatures::castle(Shogi& s, int player, vector<int>& featVec) {
         int incorrect = 0;
         int king_in_place = 1;
         for (int pos = 0; pos < 81; pos++) {
-            
+
             // Skip if position empty
             if (c.board[pos] == -1) continue;
 
