@@ -76,9 +76,9 @@ int OrganismEvaluator::evaluate_synchronous(int* weights, int& pos) {
 	int positions = 0;
 
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
-	/* for (auto& game : TRAIN) { */
-	for (int i = 0; i < 2000; i++) {
-		auto game = TRAIN[i];
+	for (auto& game : TRAIN) {
+	/* for (int i = 0; i < 2000; i++) { */
+		/* auto game = TRAIN[i]; */
 		string board = game.first;
     int grandmaster_move = game.second;
 
@@ -103,9 +103,9 @@ int OrganismEvaluator::evaluate_parallel(int* weights, int&pos) {
 
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
 	#pragma omp parallel for reduction(+:correct,positions)
-	/* for (auto& game : TRAIN) { */
-	for (int i = 0; i < 2000; i++) {
-		auto game = TRAIN[i];
+	for (auto& game : TRAIN) {
+	/* for (int i = 0; i < 2000; i++) { */
+		/* auto game = TRAIN[i]; */
 		string board = game.first;
     int grandmaster_move = game.second;
 
@@ -140,8 +140,7 @@ char int evaluate_organism(int* weights)
 	auto start = high_resolution_clock::now();
 
 	if (!evaluator.feature_cache_loaded()) {
-		/* correct = evaluator.evaluate_synchronous(weights, positions); */
-		correct = evaluator.evaluate_parallel(weights, positions);
+		correct = evaluator.evaluate_synchronous(weights, positions);
 	} else {
 		correct = evaluator.evaluate_parallel(weights, positions);
 	}
@@ -149,8 +148,7 @@ char int evaluate_organism(int* weights)
 	// Uncomment for timing during featuresTests
 	auto stop = high_resolution_clock::now();
 	auto duration = duration_cast<milliseconds>(stop - start);
-	/* cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl; */
-	cout << "Evaluated H() for 2000 games, took " << duration.count() << "ms" << endl;
+	cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl;
 
 	// Remember to mark the cache as being full after first execution
 	cout << "Evaluated for " << positions << " positions" << endl;
