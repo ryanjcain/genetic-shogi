@@ -15,15 +15,15 @@ int movingDlength[14] = {
 int danD[14][8] = {
 	{-1}, {-1, -1, -1, 1, 1}, {-2, -2}, {-1}, {-1, 0, 1, 0}, {-1, -1, 1, 1},
 	{-1, -1, -1, 1, 1, 1, 0, 0}, {-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1},
-	{-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1}, 
+	{-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1},
 	{-1, -1, 1, 1, -1, 0, 1, 0}, {-1, 0, 1, 0, -1, -1, 1, 1}
 };
 
 int sujiD[14][8] = {
 	{0}, {-1, 0, 1, -1, 1}, {-1, 1}, {0}, {0, -1, 0, 1}, {1, -1, 1, -1},
-	{1, 0, -1, 1, 0, -1, 1, -1}, {1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0}, 
-	{1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0}, 
-	{1, -1, 1, -1, 0, 1, 0, -1}, {0, 1, 0, -1, 1, -1, 1, -1} 
+	{1, 0, -1, 1, 0, -1, 1, -1}, {1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0},
+	{1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0},
+	{1, -1, 1, -1, 0, 1, 0, -1}, {0, 1, 0, -1, 1, -1, 1, -1}
 };
 
 void Shogi::Init(){
@@ -53,7 +53,7 @@ void Shogi::Init(){
 	SENTEKINGNUM = 10;
 	GOTEKINGNUM = 30;
 
-	gomaKind[ 0] = genGomakind(CHARIOT, NORMAL, SENTE);		gomaPos[ 0] = genPos(9, 9);		
+	gomaKind[ 0] = genGomakind(CHARIOT, NORMAL, SENTE);		gomaPos[ 0] = genPos(9, 9);
 	gomaKind[ 1] = genGomakind(CHARIOT, NORMAL, SENTE);		gomaPos[ 1] = genPos(1, 9);
 	gomaKind[ 2] = genGomakind(CASSIA, NORMAL, SENTE);		gomaPos[ 2] = genPos(8, 9);
 	gomaKind[ 3] = genGomakind(CASSIA, NORMAL, SENTE);		gomaPos[ 3] = genPos(2, 9);
@@ -197,11 +197,11 @@ void Shogi::EasyBoardPrint(){
 	}
 	cout << "\nGOMA  f l k s g x t\n";
 	cout << "SENTE " << gomaTable[FOOT].size() << " " << gomaTable[CHARIOT].size() << " "
-	 << gomaTable[CASSIA].size() << " " << gomaTable[SILVER].size() << " " << gomaTable[GOLD].size() << " " 
+	 << gomaTable[CASSIA].size() << " " << gomaTable[SILVER].size() << " " << gomaTable[GOLD].size() << " "
 	 << gomaTable[ANGLE].size() << " " << gomaTable[FLYING].size() << " ";
 	 cout << "\n";
 	 cout << "GOTE  " << gomaTable[FOOT+8].size() << " " << gomaTable[CHARIOT+8].size() << " "
-	 << gomaTable[CASSIA+8].size() << " " << gomaTable[SILVER+8].size() << " " << gomaTable[GOLD+8].size() << " " 
+	 << gomaTable[CASSIA+8].size() << " " << gomaTable[SILVER+8].size() << " " << gomaTable[GOLD+8].size() << " "
 	 << gomaTable[ANGLE+8].size() << " " << gomaTable[FLYING+8].size() << " ";
 	 cout << "\n";
 }
@@ -283,7 +283,7 @@ vector<int> Shogi::FetchMove(int request){
 	for(int i=0;i<40;i++){
 
 		if(gomaPos[i] == -1)continue;
-		
+
 		int eid = gomakindEID(gomaKind[i]);
 		int owner = gomakindChesser(gomaKind[i]);
 		int danReverse = (owner == SENTE) ? 1 : -1;
@@ -304,7 +304,7 @@ vector<int> Shogi::FetchMove(int request){
 				if(updatingAttackMap){
 					boardFixedAttacking[owner][newPos].push_back(genWatchup(NOBLOCKER, i));
 				}
-				
+
 				if(boardChesser[newPos] == owner)continue;
 				if(chesser != owner)continue;
 
@@ -313,7 +313,7 @@ vector<int> Shogi::FetchMove(int request){
 
 				if(owner == SENTE and newDan > 3 and preDan > 3){
 					moveList.push_back(normalMove);
-				}else if(owner == GOTE and newDan < 7 and newDan < 7){
+				}else if(owner == GOTE and newDan < 7 and preDan < 7){
 					moveList.push_back(normalMove);
 				}
 				else if(eid != FOOT and eid != CHARIOT and eid != CASSIA){
@@ -359,7 +359,7 @@ vector<int> Shogi::FetchMove(int request){
 							boardBFlowAttacking[owner][newPos].push_back(genWatchup(blocker, i));
 						}
 					}
-					
+
 					if(boardChesser[newPos] == owner)break;
 
 					int normalMove = genMove(prePos, newPos, NORMAL, NORMAL);
@@ -368,7 +368,7 @@ vector<int> Shogi::FetchMove(int request){
 						if(chesser != owner);
 						else if(owner == SENTE and newDan > 3 and preDan > 3){
 							moveList.push_back(normalMove);
-						}else if(owner == GOTE and newDan < 7 and newDan < 7){
+						}else if(owner == GOTE and newDan < 7 and preDan < 7){
 							moveList.push_back(normalMove);
 						}
 						else if(eid != FOOT and eid != CHARIOT and eid != CASSIA){
@@ -427,8 +427,8 @@ vector<int> Shogi::FetchMove(int request){
 	int kingPos = (chesser == SENTE) ? gomaPos[SENTEKINGNUM] : gomaPos[GOTEKINGNUM];
 	int otherkingPos = (chesser == GOTE) ? gomaPos[SENTEKINGNUM] : gomaPos[GOTEKINGNUM];
 	int killerPos = genPos(posSuji(otherkingPos), posDan(otherkingPos) + (chesser == SENTE ? 1 : -1));
-	int totalKingAttack = 
-		boardFixedAttacking[other][kingPos].size() + 
+	int totalKingAttack =
+		boardFixedAttacking[other][kingPos].size() +
 		boardFlowAttacking[other][kingPos].size();
 	int deceiveKingAttack = boardBFlowAttacking[other][kingPos].size();
 
@@ -443,11 +443,11 @@ vector<int> Shogi::FetchMove(int request){
 				if(boardChesser[pos] != -1)continue;
 				if(nifu[posSuji(pos)] and i == FOOT)continue;
 
-				if((i == FOOT or i == CHARIOT) and 
-				  ((posDan(pos) == 1 and chesser == SENTE) or 
+				if((i == FOOT or i == CHARIOT) and
+				  ((posDan(pos) == 1 and chesser == SENTE) or
 				  (posDan(pos) == 9 and chesser == GOTE)))continue;
-				if((i == CASSIA) and 
-				  ((posDan(pos) <= 2 and chesser == SENTE) or 
+				if((i == CASSIA) and
+				  ((posDan(pos) <= 2 and chesser == SENTE) or
 				  (posDan(pos) >= 8 and chesser == GOTE)))continue;
 
 				bool nofootkill = false;
@@ -455,14 +455,14 @@ vector<int> Shogi::FetchMove(int request){
 				if(i == FOOT and pos == killerPos and ruleOfFootKill){
 					int otherkingSuji = posSuji(otherkingPos);
 					int otherkingDan = posDan(otherkingPos);
-					
+
 					for(int np=0;np<8;np++){
 						int escapeSuji = otherkingSuji + sujiD[KING][np];
 						int escapeDan = otherkingDan + danD[KING][np];
 						int escapePos = genPos(escapeSuji, escapeDan);
 						if(escapePos == -1)continue;
 						if(boardChesser[escapePos] == other)continue;
-						int escapePosAttack = 
+						int escapePosAttack =
 							boardFixedAttacking[chesser][escapePos].size() +
 							boardFlowAttacking[chesser][escapePos].size();
 						if(escapePosAttack == 0){
@@ -473,10 +473,10 @@ vector<int> Shogi::FetchMove(int request){
 
 					if(!nofootkill){
 						int killerPosAttack =
-							boardFixedAttacking[other][killerPos].size() + 
+							boardFixedAttacking[other][killerPos].size() +
 							boardFlowAttacking[other][killerPos].size();
 
-						int otherDeceiveKingAttack = 
+						int otherDeceiveKingAttack =
 							boardBFlowAttacking[chesser][otherkingPos].size();
 
 						if(otherDeceiveKingAttack == 0){
@@ -578,11 +578,11 @@ vector<int> Shogi::FetchMove(int request){
 				int newPos = pos;
 				int move = genMove(prePos, newPos, NORMAL, PLAYING);
 				moveList.push_back(move);
-				
+
 			}
 		}
 	}
-	
+
 	if(!ruleOfSafeKing)return moveList;
 
 	vector<int> returnVector;
@@ -600,12 +600,12 @@ vector<int> Shogi::FetchMove(int request){
 				}
 				int prePos = movePrepos(move);
 				int newPos = moveNewpos(move);
-				int newPosAttack = 
+				int newPosAttack =
 					boardFixedAttacking[other][newPos].size() +
 					boardFlowAttacking[other][newPos].size();
 
 				if(prePos == kingPos and newPosAttack > 0)continue;
-				
+
 				returnVector.push_back(move);
 			}
 		}else{
@@ -616,12 +616,12 @@ vector<int> Shogi::FetchMove(int request){
 				}
 				int prePos = movePrepos(move);
 				int newPos = moveNewpos(move);
-				int newPosAttack = 
+				int newPosAttack =
 					boardFixedAttacking[other][newPos].size() +
 					boardFlowAttacking[other][newPos].size();
 
 				if(prePos == kingPos and newPosAttack > 0)continue;
-				
+
 				bool goodmove = true;
 				for(int i=0;i<deceiveKingAttack;i++){
 					int watchup = boardBFlowAttacking[other][kingPos][i];
@@ -648,11 +648,11 @@ vector<int> Shogi::FetchMove(int request){
 
 			int prePos = movePrepos(move);
 			int newPos = moveNewpos(move);
-			int newPosAttack = 
+			int newPosAttack =
 				boardFixedAttacking[other][newPos].size() +
 				boardFlowAttacking[other][newPos].size();
 
-			int newPosDeceive = 
+			int newPosDeceive =
 				boardBFlowAttacking[other][newPos].size();
 
 			if(prePos != kingPos or newPosAttack > 0)continue;
@@ -671,12 +671,12 @@ vector<int> Shogi::FetchMove(int request){
 			if(goodmove){
 				returnVector.push_back(move);
 			}
-			
+
 		}
 	}else {
 		if(deceiveKingAttack == 0){
 			if(boardFixedAttacking[other][kingPos].size() == 1){
-				
+
 				int watchup = boardFixedAttacking[other][kingPos][0];
 				int attacker = watchupAttacker(watchup);
 				for(int move: moveList){
@@ -685,7 +685,7 @@ vector<int> Shogi::FetchMove(int request){
 					int prePos = movePrepos(move);
 					int newPos = moveNewpos(move);
 
-					int newPosAttack = 
+					int newPosAttack =
 						boardFixedAttacking[other][newPos].size() +
 						boardFlowAttacking[other][newPos].size();
 
@@ -713,7 +713,7 @@ vector<int> Shogi::FetchMove(int request){
 							returnVector.push_back(move);
 						}
 					}else{
-						int newPosAttack = 
+						int newPosAttack =
 							boardFixedAttacking[other][newPos].size() +
 							boardFlowAttacking[other][newPos].size();
 
@@ -721,7 +721,7 @@ vector<int> Shogi::FetchMove(int request){
 						if(prePos == kingPos and newPosAttack > 0)continue;
 
 						bool goodmove = true;
-						int newPosDeceive = 
+						int newPosDeceive =
 							boardBFlowAttacking[other][newPos].size();
 
 						for(int i=0;i<newPosDeceive;i++){
@@ -742,7 +742,7 @@ vector<int> Shogi::FetchMove(int request){
 			}
 		}else{
 			if(boardFixedAttacking[other][kingPos].size() == 1){
-				
+
 				int watchup = boardFixedAttacking[other][kingPos][0];
 				int attacker = watchupAttacker(watchup);
 				for(int move: moveList){
@@ -751,7 +751,7 @@ vector<int> Shogi::FetchMove(int request){
 					int prePos = movePrepos(move);
 					int newPos = moveNewpos(move);
 
-					int newPosAttack = 
+					int newPosAttack =
 						boardFixedAttacking[other][newPos].size() +
 						boardFlowAttacking[other][newPos].size();
 
@@ -763,7 +763,7 @@ vector<int> Shogi::FetchMove(int request){
 						int watchup = boardBFlowAttacking[other][kingPos][i];
 						int blocker = watchupBlocker(watchup);
 						int attacker = watchupAttacker(watchup);
-						
+
 						if(prePos == gomaPos[blocker]){
 							if(posOnLine(kingPos, prePos, newPos)){
 								break;
@@ -795,7 +795,7 @@ vector<int> Shogi::FetchMove(int request){
 							returnVector.push_back(move);
 						}
 					}else{
-						int newPosAttack = 
+						int newPosAttack =
 							boardFixedAttacking[other][newPos].size() +
 							boardFlowAttacking[other][newPos].size();
 
@@ -804,7 +804,7 @@ vector<int> Shogi::FetchMove(int request){
 
 						bool goodmove = true;
 
-						int newPosDeceive = 
+						int newPosDeceive =
 							boardBFlowAttacking[other][newPos].size();
 
 						for(int i=0;i<newPosDeceive;i++){
@@ -823,7 +823,7 @@ vector<int> Shogi::FetchMove(int request){
 							int watchup = boardBFlowAttacking[other][kingPos][i];
 							int blocker = watchupBlocker(watchup);
 							int attacker = watchupAttacker(watchup);
-							
+
 							if(prePos == gomaPos[blocker]){
 								if(posOnLine(kingPos, prePos, newPos))break;
 								else {
@@ -875,7 +875,7 @@ vector<int> Shogi::FetchMove(int request){
 					int newDan = otherKingDan + danD[eid][v] * danReverse * nx;
 					int newPos = genPos(newSuji, newDan);
 					if(newPos == -1)break;
-					
+
 					if(blockingMode and gomaKind[board[newPos]] == eid and boardChesser[newPos] == chesser){
 						criticalBlocker.push_back(blocker);
 						break;
@@ -993,7 +993,7 @@ void Shogi::MakeMove(int move){
 	if(getGoma != -1){
 		int I = getGoma + chesser * 8;
 		gomaTable[I].push(gomanumN);
-	} 
+	}
 	round++;
 	return;
 }
@@ -1082,7 +1082,7 @@ void Shogi::WhiteInit(){
 }
 
 void Shogi::SetGoma(int gomanum, int chesser, int upgrade, int position, int gomatable){
-	
+
 	if(gomatable == 0){
 		board[position] = gomanum;
 		boardChesser[position] = chesser;
