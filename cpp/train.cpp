@@ -148,10 +148,10 @@ char int evaluate_organism(int* weights)
 	// Uncomment for timing during featuresTests
 	auto stop = high_resolution_clock::now();
 	auto duration = duration_cast<milliseconds>(stop - start);
-	cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl;
+	/* cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl; */
 
 	// Remember to mark the cache as being full after first execution
-	cout << "Evaluated for " << positions << " positions" << endl;
+	/* cout << "Evaluated for " << positions << " positions" << endl; */
 
 	if (!evaluator.feature_cache_loaded()) {
 		evaluator.update_tt_status(true);
