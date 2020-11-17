@@ -3,6 +3,7 @@ import json
 import pickle
 import random
 import sys
+import re
 
 import progressbar
 
@@ -238,17 +239,13 @@ def encodePosHex(sfen):
     black_hand = dict()
     white_hand = dict()
 
-    i = 0
-    while i < len(hand):
-        ch = hand[i]
-        if ch.isdigit():
-            next_ch = hand[i + 1]
-            if next_ch.isupper():
-                black_hand[next_ch.lower()] = int(ch)
-            else:
-                white_hand[next_ch.lower()] = int(ch)
-
-        i += 1
+    counts = re.findall(r'\d+', hand)
+    captured = re.findall(r'[a-zA-Z]', hand)
+    for i, piece in enumerate(captured):
+        if piece.isupper():
+            black_hand[piece.lower()] = int(counts[i])
+        else:
+            white_hand[piece.lower()] = int(counts[i])
 
     # Encode the hand in order expected by cpp packagd: p s n l b r k g
     ordering = ['p', 's', 'n', 'l', 'r', 'b', 'k', 'g']
@@ -388,20 +385,27 @@ def print_castle_dict_as_cpp_map(reverse):
 
 
 if __name__ == "__main__":
+
     # # Test for compatability with cpp package
     # import shogi
-    # test1 = "l7l/3ks2b1/p2gpg3/3p3Pp/2Pn2Pp1/1PpP1B2P/P8/1SG1G2R1/LNK5L w 1R1S4P1s2n1p 96"
+    # test1 = "l2l5/1ks1p4/2g3+R2/1pn1K1b2/p1pP2+bs1/8l/PPSN5/LSGG5/KN2b4 w 1P1G 10"
     # test2 = "ln1gkg1nl/1r1s1s1b1/p1pp1p1pp/1p2p1p2/9/2PPP4/PP3PPPP/1B1S1S1R1/LN1GKG1NL b - 11"
 
-    # hex1 = encodePosHex(test1)
+    # test2 = "l2l5/1ks1p4/2g3+R2/1pn1N1b2/p1pP2+bs1/8l/PPSN5/LSGG5/KN2r4 w 1G1P10p 126"
+    # test2 = "+L6nl/1k5r1/1pn1S1b2/2P1s1p1p/3p1p1p1/4b1P1P/1P2+pP1P1/1Sp1p3R/KN1G3NL w 1G1L2P2g1s1p 100"
+
+    # hex1 = encodePosHex(test2)
     # hex2 = encodePosHex(test2)
 
-    # board1 = shogi.Board(test1)
+    # board1 = shogi.Board(test2)
     # board2 = shogi.Board(test2)
 
-    # print(board1.move_number)
-    # print(board1)
-    # print(hex1)
+    # int_moves = []
+    # for move in board1.legal_moves:
+    #     int_moves.append(usi_to_int(move.usi()))
+
+    # for move in sorted(int_moves):
+    #     print(move)
     # print(board2.move_number)
     # print(board2)
     # print(hex2)
@@ -425,15 +429,20 @@ if __name__ == "__main__":
         help=
         "Selection method, either: sr (single random) or srr (single random random)"
     )
-    parser.add_argument("--cache",
-                        type=str,
-                        help="Desired filename store the cache of legal moves reachable from all sampled positions: NO '/' allowed.")
-    parser.add_argument("--testOut",
-                        type=str,
-                        help="Desired filename storing the test positions: NO '/' allowed.")
-    parser.add_argument("--trainOut",
-                        type=str,
-                        help="Desired filename to store the train positions: NO '/' allowed.")
+    parser.add_argument(
+        "--cache",
+        type=str,
+        help=
+        "Desired filename store the cache of legal moves reachable from all sampled positions: NO '/' allowed."
+    )
+    parser.add_argument(
+        "--testOut",
+        type=str,
+        help="Desired filename storing the test positions: NO '/' allowed.")
+    parser.add_argument(
+        "--trainOut",
+        type=str,
+        help="Desired filename to store the train positions: NO '/' allowed.")
     parser.add_argument("--type",
                         type=str,
                         help="Output file type. Supports [pickle, json]")
@@ -448,12 +457,16 @@ if __name__ == "__main__":
         "--hex",
         type=bool,
         default=False,
-        help="[True | False] - Whether or not to convert positions from sfen to hex string representaiton.")
+        help=
+        "[True | False] - Whether or not to convert positions from sfen to hex string representaiton."
+    )
     parser.add_argument(
         "--includeResultPos",
         type=bool,
         default=False,
-        help="[True | False] - Whether or not to include representation of resulting move in the cache. False by default.")
+        help=
+        "[True | False] - Whether or not to include representation of resulting move in the cache. False by default."
+    )
     parser.add_argument("--move",
                         type=str,
                         default='usi',
