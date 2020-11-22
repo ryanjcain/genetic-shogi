@@ -1,10 +1,9 @@
 #include "train.hpp"
 
-/* Struct required to do the reduction in parallel */
-struct Action { float score; int move; };
-#pragma omp declare reduction(max : struct Action : omp_out = omp_in.score > omp_out.score ? omp_in : omp_out)
+int TEST_POS_START = 0;
+int TEST_POS_END = TEST_POS_START + 100;
 
-OrganismEvaluator::OrganismEvaluator(string moves_cache_file) {
+OrganismEvaluator::OrganismEvaluator(string moves_cache_file) : heuristic(SENTE){
 	// Load the cache of legal moves into memory
 	cache.Init(moves_cache_file);
 }
@@ -24,10 +23,12 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 
 	// Initialize shogi object based on board and best score / move to 0
 	Shogi s = load_game(board);
+	/* s.FetchMove(1); */
 	int best_score = 0, best_move = 0;
 
-	// ***** MIGHT NOT NEED ***** But initialize root player
-  int player = (s.round & 1);
+	// Set the perspective for the heuristic evaluation to current player for the input board
+  int player = (s.round % 2);
+	heuristic.setPlayer(player);
 
 	// Loop though all possible moves reachable from board state
 	int hits = 0;
@@ -38,6 +39,9 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 		Shogi result = s;
 		result.MakeMove(move);
 
+		// Update attack map used in heuristic calculations
+		result.FetchMove(1);
+
 		// Key used for the transposition table of {pos, featureVector}
 		vector<unsigned char> result_state = result.SaveGame();
 		vector<int> fV;
@@ -47,7 +51,7 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 			fV = feature_tt.at(result_state);
 		} else {
 			// First time seeing game state, add {pos, featureVector} to transposition table
-			fV = heuristic.feature_vec(result, player);
+			fV = heuristic.feature_vec(result);
 			feature_tt.insert({result_state, fV});
 		}
 
@@ -77,7 +81,7 @@ int OrganismEvaluator::evaluate_synchronous(int* weights, int& pos) {
 
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
 	for (auto& game : TRAIN) {
-	/* for (int i = 0; i < 2000; i++) { */
+	/* for (int i = TEST_POS_START; i < TEST_POS_END; i++) { */
 		/* auto game = TRAIN[i]; */
 		string board = game.first;
     int grandmaster_move = game.second;
@@ -104,7 +108,7 @@ int OrganismEvaluator::evaluate_parallel(int* weights, int&pos) {
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
 	#pragma omp parallel for reduction(+:correct,positions)
 	for (auto& game : TRAIN) {
-	/* for (int i = 0; i < 2000; i++) { */
+	/* for (int i = TEST_POS_START; i < TEST_POS_END; i++) { */
 		/* auto game = TRAIN[i]; */
 		string board = game.first;
     int grandmaster_move = game.second;
@@ -180,10 +184,10 @@ int main() {
 		// Uncommment below for position / move generation testing
 		/* cout << "--- Board and Move Tests ---" << endl; */
 		/* /1* string replica = "FFFFFFFFFF13FFFFFFFFFFFFFF11FFFFFFFFFFFF0C151DFFFFFFFFFFFFFFFFFFFFFFFFFFFF10FF02FFFFFFFF1413FFFFFF00FF0207FFFF11171210FF0107FFFF16FF10FFFF00010213FFFFFF10FF00030601000000000000010A00000000000000007D"; *1/ */
-		/* string replica = "13FFFF10FF00FF04031214FFFF10FF00FF02FFFF1510FF00FFFFFFFFFFFFFF10FF00FFFFFFFF0111FF151810FFFFFFFFFF10FFFFFF07FFFF1200FFFFFF10FFFF1610FFFFFF0001020BFFFFFFFFFFFFFF06020000010000000101010000000000020063"; */
+		/* string board = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0007FFFFFFFFFFFFFF00FF07FFFFFFFFFF000501FFFFFFFFFFFFFF000602FFFFFFFFFF00FFFF03000000000000000000000000000000000000"; */
 		/* Shogi r; */
 		/* r.Init(); */
-		/* r.LoadGame(load_hex_vector(replica)); */
+		/* r.LoadGame(load_hex_vector(board)); */
 
 		/* r.EasyBoardPrint(); */
 
