@@ -13,12 +13,11 @@ from types import FunctionType
 
 class ShogiFeatures:
     '''
-    Wrapper class to for features of shogi games. The class methods represent abstract 
-    conditions of a shogi game such as King Safety, Good shape, bad shape, Material Possesion, 
+    Wrapper class to for features of shogi games. The class methods represent abstract
+    conditions of a shogi game such as King Safety, Good shape, bad shape, Material Possesion,
     etc. Each of these abstractions contains a set of one or more feature functions that all
     take the same input @pos, which is a shogi.Board object, and return some normalized value.
     '''
-
     def all(self):
         '''
         Return a list of references to ALL of the feature functions nested within the
@@ -43,28 +42,34 @@ class ShogiFeatures:
             '''
             Simply count the number of occurences of a given piece on the board
             '''
-            piece = piece.upper() if board.turn == shogi.BLACK else piece.lower()
-            return sum([1 for i in shogi.SQUARES 
-                        if board.piece_at(i) and board.piece_at(i).symbol() == piece])
-        
+            piece = piece.upper(
+            ) if board.turn == shogi.BLACK else piece.lower()
+            return sum([
+                1 for i in shogi.SQUARES
+                if board.piece_at(i) and board.piece_at(i).symbol() == piece
+            ])
+
         def create_counter(piece):
             '''
             Creates and returns a unique function that counts the number of a given piece on a board.
-            * Yay for python closures! * 
+            * Yay for python closures! *
             '''
             def piece_counter(board):
                 return count(piece, board)
+
             return piece_counter
 
         def piece_counters():
             '''
             Generate counters for all shogi pieces and promotions (except the king).
             '''
-            pieces = ['p', 'l', 'n', 's', 'g', 'b', 'r', 
-                     '+p', '+l', '+n', '+s', '+b', '+r']
+            pieces = [
+                'p', 'l', 'n', 's', 'g', 'b', 'r', '+p', '+l', '+n', '+s',
+                '+b', '+r'
+            ]
 
             return [create_counter(piece) for piece in pieces]
-        
+
         # End of material feature, return counter functions for all piece types!
         return piece_counters()
 
@@ -79,12 +84,17 @@ class ShogiFeatures:
             the position of the current players king.
             '''
             king = 'K' if board.turn == shogi.BLACK else 'k'
-            index = [i for i in shogi.SQUARES if board.piece_at(i) and board.piece_at(i).symbol() == king]
-            if index: # Check as some board positions could have been endgame situations
-                return list(shogi.SquareSet(board.attacks_from(shogi.KING, index[0], board.occupied, board.turn)))
+            index = [
+                i for i in shogi.SQUARES
+                if board.piece_at(i) and board.piece_at(i).symbol() == king
+            ]
+            if index:  # Check as some board positions could have been endgame situations
+                return list(
+                    shogi.SquareSet(
+                        board.attacks_from(shogi.KING, index[0],
+                                           board.occupied, board.turn)))
             else:
                 return []
-
 
         def thickness(board):
             '''
@@ -98,7 +108,8 @@ class ShogiFeatures:
                     if board.turn == shogi.BLACK and piece.symbol().isupper():
                         defenders += 1
                     # Look for uppercase pieces if white
-                    elif board.turn == shogi.WHITE and piece.symbol().islower():
+                    elif board.turn == shogi.WHITE and piece.symbol().islower(
+                    ):
                         defenders += 1
             return defenders
 
@@ -108,15 +119,18 @@ class ShogiFeatures:
 
             TO DO : Also make sure the spaces are not attacked directly by enemy (no suicide escapes)
             '''
-            return sum([1 for pos in king_area(board) if not board.piece_at(pos)])
+            return sum(
+                [1 for pos in king_area(board) if not board.piece_at(pos)])
 
         def threats(board):
             '''
             Total number of attackers targeting the squares around the king. If multiple of the
             opponent's pieces attack the same square, both of these instances are counted.
             '''
-            opponent = board.turn ^ 1# shogi.WHITE if board.turn == shogi.BLACK else shogi.BLACK
-            return -1 * sum([len(board.attackers(opponent, pos)) for pos in king_area(board)])
+            opponent = board.turn ^ 1  # shogi.WHITE if board.turn == shogi.BLACK else shogi.BLACK
+            return -1 * sum([
+                len(board.attackers(opponent, pos)) for pos in king_area(board)
+            ])
 
         def entering_king():
             pass
@@ -125,13 +139,12 @@ class ShogiFeatures:
 
     @staticmethod
     def pieces_in_hand():
-    #     '''
-    #     Set of features that tries to represent the strategic potential of dropping
-    #     pieces they have captured back onto the board.
-    #     '''
+        #     '''
+        #     Set of features that tries to represent the strategic potential of dropping
+        #     pieces they have captured back onto the board.
+        #     '''
         def in_hand_count(board):
             return len(board.pieces_in_hand[board.turn])
-
 
     #     # Uncomment for an alternative feature, but quite costly as it looks ahead one more level in game tree
     #     def max_drop_attack(board):
@@ -151,7 +164,7 @@ class ShogiFeatures:
 
     #             for square in empty_squares: # For all the empty squares
     #                 # Create a drop move that places the piece in hand on a square
-    #                 move = shogi.Move(None, square, drop_piece_type=piece) 
+    #                 move = shogi.Move(None, square, drop_piece_type=piece)
     #                 if board.is_legal(move):
     #                     # Actually make the move if it is valid
     #                     board.push(move)
@@ -170,7 +183,8 @@ class ShogiFeatures:
 
     #         return max_attack
 
-        # Return our list of feature functions
+    # Return our list of feature functions
+
         return ([in_hand_count])
 
     @staticmethod
@@ -186,9 +200,11 @@ class ShogiFeatures:
             Helper function which returns a tuple of lists representing the squares of the current player's
             camp as well as the enemy camps.
             '''
-            home_camp = list(range(0,27)) if board.turn == shogi.WHITE else list(range(54, 81))
-            oppn_camp = list(range(0,27)) if board.turn == shogi.BLACK else list(range(54, 81))
-            opponent = board.turn ^ 1 # shogi.WHITE if board.turn == shogi.BLACK else shogi.BLACK
+            home_camp = list(range(
+                0, 27)) if board.turn == shogi.WHITE else list(range(54, 81))
+            oppn_camp = list(range(
+                0, 27)) if board.turn == shogi.BLACK else list(range(54, 81))
+            opponent = board.turn ^ 1  # shogi.WHITE if board.turn == shogi.BLACK else shogi.BLACK
             return (home_camp, oppn_camp, opponent)
 
         def in_camp_freedom(board):
@@ -205,7 +221,7 @@ class ShogiFeatures:
                 attackers = board.attackers(opponent, square)
                 # Ensure square is empty AND not attacked
                 if not piece and not attackers:
-                   free += 1
+                    free += 1
 
             return free
 
@@ -237,10 +253,10 @@ class ShogiFeatures:
         '''
         Tries to capture how well-formed a given player's castle structure is.
         '''
-        # Threshold at which we consider a position to contain a proper castle. 
-        #   A player's formation must have at least as many pieces (excluding the king) in the 
-        #   proper position as the total number of pieces in the castle - CASTLE_THRESHOLD. The 
-        #   king must ALWAYS be in the correct position to be considered a castle. 
+        # Threshold at which we consider a position to contain a proper castle.
+        #   A player's formation must have at least as many pieces (excluding the king) in the
+        #   proper position as the total number of pieces in the castle - CASTLE_THRESHOLD. The
+        #   king must ALWAYS be in the correct position to be considered a castle.
         #
         #   ex. For a threshold of 1, if a player's king is in the correct spot for the castle,
         #       a maximum of at most 1 other piece is allowed to be absent/different from the
@@ -250,49 +266,50 @@ class ShogiFeatures:
 
         # Standard castles BLACK perspective; must call invert() to get WHITE perspective
         castles = {
-            "left_mino" : "9/9/9/9/9/P1P6/1PBPP4/1KS1G4/LN1G5 b - 0",
-            "gold_fortress" : "9/9/9/9/9/2PPP4/PPSG5/1KG6/LN7 b - 0",
-            "helmet" : "9/9/9/9/9/P1P6/1PSPP4/2GKG4/LN7 b - 0",
-            "crab" : "9/9/9/9/9/2P1P4/PP1P5/2GSG4/LK1K5 b - 0",
-            "bonanza" : "9/9/9/9/9/2P6/PPSPP4/2KGG4/LN7 b - 0",
-            "snowroof" : "9/9/9/9/9/2PPP4/PP1SS4/2G1G4/LN1K5 b - 0",
-            "silver_horns_snowroof" : "9/9/9/9/9/2PP1PP2/PP1SPS3/2G1G4/LN1K5 b - 0",
-            "right_king_1" : "9/9/9/9/7P1/4PPP1P/5SN2/6K2/7RL b - 0",
-            "right_king_2" : "9/9/9/9/7PP/4PPP2/5SN2/5GK2/7RL b - 0",
-            "right_king_3" : "9/9/9/9/7P1/5PP1P/4PSN2/4GK3/7RL b - 0",
-            "central_house" : "9/9/9/9/9/9/2PPPPP2/2GSKSG2/9 b - 0",
-            "nakahara" : "9/9/9/9/9/2P6/PP1PPP3/2G2S3/LNSKG4 b - 0",
-            "duck" : "9/9/9/9/9/9/2PPPPP2/3SKS3/2G3G2 b - 0",
-            "paperweight" : "9/9/9/9/9/P1P1P4/1PNP5/LSKGG4/9 b - 0",
-            "truck" : "9/9/9/9/9/2PPPP3/1P1SS4/2KGG4/9 b - 0",
-            "boat_pawn" : "9/9/9/9/9/P1P1P4/1P1P5/1BK1G4/LNSG5 b - 0",
-            "daughter_inside_box" : "9/9/9/9/9/P1P6/1P1P5/1BKG5/LNSG5 b - 0",
-            "diamond" : "9/9/9/9/9/P1P1P4/1P1PS4/1BKSG4/LN1G5 b - 0",
-            "strawberry" : "9/9/9/9/9/P1P6/1P1PP4/1BGKG4/LNS6 b - 0",
-            "yonenaga" : "9/9/9/9/9/PPPPP4/1S1G5/KBG6/LN7 b - 0",
-            "elmo" : "9/9/9/9/9/P1P6/1P1P5/1BKS5/LNG6 b - 0",
-            "elmo_gold" : "9/9/9/9/9/P1P6/1P1P5/1BKS5/LNG1G4 b - 0",
-            "silver_elephant_eye" : "9/9/9/9/9/1PPPP4/2NKS4/3S5/9 b - 0",
-            "gold_elephant_eye" : "9/9/9/9/9/1PPPP4/2NKS4/3G5/9 b - 0",
-            "kushikatsu" : "9/9/9/9/9/2P6/PP1P5/KSG6/LNG6 b - 0",
-            "anaguma" : "9/9/9/9/9/9/5PPPP/6GSL/6GNK b - 0",
-            "mino" : "9/9/9/9/9/8P/4PPPP1/4G1SK1/5G1NL b - 0",
-            "silver_crown" : "9/9/9/9/9/5PPPP/5GNS1/6GK1/8L b - 0",
-            "wall" : "9/9/9/9/9/9/4PPPPP/5SK2/5G1NL b - 0",
-            "gold_mino" : "9/9/9/9/9/9/4PPPPP/5SGK1/7NL b - 0",
-            "three_move" : "9/9/9/9/9/9/4PPPPP/5GK2/6SNL b - 0",
-            "rapid_castle" : "9/9/9/9/9/9/5PPPP/6GK1/6SNL b - 0",
-            "flatfish" : "9/9/9/9/9/8P/4PPPP1/6SK1/4GG1NL b - 0",
-            "millenium_1" : "9/9/9/9/9/2PPP4/PPNG5/2G6/LKS6 b - 0",
-            "millenium_2" : "9/9/9/9/9/2PPP4/PPNG5/1SG6/LKS6 b - 0",
-            "millenium_3" : "9/9/9/9/9/PPPPP4/2NG5/1SG6/LKS6 b - 0",
-            "millenium_4" : "9/9/9/9/9/1PPPP4/PSNG5/2G6/LKS6 b - 0",
-            "millenium_5" : "9/9/9/9/9/2P6/PPNP5/1SGS5/LKG6 b - 0",
-            "millenium_6" : "9/9/9/9/9/1PPPP4/P2GS4/1BGS5/LNK6 b - 0",
-            "gold_excelsior" : "9/9/9/9/9/8P/4PPPP1/4GGKS1/7NL b - 0",
-            "aerokin" : "9/9/9/9/9/5PPPP/5GNSK/6G1L/9 b - 0",
-            "aerial_tower" : "9/9/9/9/PPP6/1KS6/1GN6/9/L8 b - 0",
-            "fourth_edge_king" : "9/9/9/9/PPPP5/KGGS5/2N6/9/L8 b - 0" 
+            "left_mino": "9/9/9/9/9/P1P6/1PBPP4/1KS1G4/LN1G5 b - 0",
+            "gold_fortress": "9/9/9/9/9/2PPP4/PPSG5/1KG6/LN7 b - 0",
+            "helmet": "9/9/9/9/9/P1P6/1PSPP4/2GKG4/LN7 b - 0",
+            "crab": "9/9/9/9/9/2P1P4/PP1P5/2GSG4/LN1K5 b - 0",
+            "bonanza": "9/9/9/9/9/2P6/PPSPP4/2KGG4/LN7 b - 0",
+            "snowroof": "9/9/9/9/9/2PPP4/PP1SS4/2G1G4/LN1K5 b - 0",
+            "silver_horns_snowroof":
+            "9/9/9/9/9/2PP1PP2/PP1SPS3/2G1G4/LN1K5 b - 0",
+            "right_king_1": "9/9/9/9/7P1/4PPP1P/5SN2/6K2/7RL b - 0",
+            "right_king_2": "9/9/9/9/7PP/4PPP2/5SN2/5GK2/7RL b - 0",
+            "right_king_3": "9/9/9/9/7P1/5PP1P/4PSN2/4GK3/7RL b - 0",
+            "central_house": "9/9/9/9/9/9/2PPPPP2/2GSKSG2/9 b - 0",
+            "nakahara": "9/9/9/9/9/2P6/PP1PPP3/2G2S3/LNSKG4 b - 0",
+            "duck": "9/9/9/9/9/9/2PPPPP2/3SKS3/2G3G2 b - 0",
+            "paperweight": "9/9/9/9/9/P1P1P4/1PNP5/LSKGG4/9 b - 0",
+            "truck": "9/9/9/9/9/2PPPP3/1P1SS4/2KGG4/9 b - 0",
+            "boat_pawn": "9/9/9/9/9/P1P1P4/1P1P5/1BK1G4/LNSG5 b - 0",
+            "daughter_inside_box": "9/9/9/9/9/P1P6/1P1P5/1BKG5/LNSG5 b - 0",
+            "diamond": "9/9/9/9/9/P1P1P4/1P1PS4/1BKSG4/LN1G5 b - 0",
+            "strawberry": "9/9/9/9/9/P1P6/1P1PP4/1BGKG4/LNS6 b - 0",
+            "yonenaga": "9/9/9/9/9/PPPPP4/1S1G5/KBG6/LN7 b - 0",
+            "elmo": "9/9/9/9/9/P1P6/1P1P5/1BKS5/LNG6 b - 0",
+            "elmo_gold": "9/9/9/9/9/P1P6/1P1P5/1BKS5/LNG1G4 b - 0",
+            "silver_elephant_eye": "9/9/9/9/9/1PPPP4/2NKS4/3S5/9 b - 0",
+            "gold_elephant_eye": "9/9/9/9/9/1PPPP4/2NKS4/3G5/9 b - 0",
+            "kushikatsu": "9/9/9/9/9/2P6/PP1P5/KSG6/LNG6 b - 0",
+            "anaguma": "9/9/9/9/9/9/5PPPP/6GSL/6GNK b - 0",
+            "mino": "9/9/9/9/9/8P/4PPPP1/4G1SK1/5G1NL b - 0",
+            "silver_crown": "9/9/9/9/9/5PPPP/5GNS1/6GK1/8L b - 0",
+            "wall": "9/9/9/9/9/9/4PPPPP/5SK2/5G1NL b - 0",
+            "gold_mino": "9/9/9/9/9/9/4PPPPP/5SGK1/7NL b - 0",
+            "three_move": "9/9/9/9/9/9/4PPPPP/5GK2/6SNL b - 0",
+            "rapid_castle": "9/9/9/9/9/9/5PPPP/6GK1/6SNL b - 0",
+            "flatfish": "9/9/9/9/9/8P/4PPPP1/6SK1/4GG1NL b - 0",
+            "millenium_1": "9/9/9/9/9/2PPP4/PPNG5/2G6/LKS6 b - 0",
+            "millenium_2": "9/9/9/9/9/2PPP4/PPNG5/1SG6/LKS6 b - 0",
+            "millenium_3": "9/9/9/9/9/PPPPP4/2NG5/1SG6/LKS6 b - 0",
+            "millenium_4": "9/9/9/9/9/1PPPP4/PSNG5/2G6/LKS6 b - 0",
+            "millenium_5": "9/9/9/9/9/2P6/PPNP5/1SGS5/LKG6 b - 0",
+            "millenium_6": "9/9/9/9/9/1PPPP4/P2GS4/1BGS5/LNK6 b - 0",
+            "gold_excelsior": "9/9/9/9/9/8P/4PPPP1/4GGKS1/7NL b - 0",
+            "aerokin": "9/9/9/9/9/5PPPP/5GNSK/6G1L/9 b - 0",
+            "aerial_tower": "9/9/9/9/PPP6/1KS6/1GN6/9/L8 b - 0",
+            "fourth_edge_king": "9/9/9/9/PPPP5/KGGS5/2N6/9/L8 b - 0"
         }
 
         def invert(sfen):
@@ -336,33 +353,36 @@ class ShogiFeatures:
 
                 if king_in_place and incorrect <= CASTLE_THRESHOLD:
                     return 1
-            
+
             # If we made it through all castle formations without finding a match, return 0
             return 0
-        
+
         return ([in_castle_threshold])
 
     @staticmethod
     def board_shape():
         '''
-        As of now a set of two simple features that return a bools of whether or not a give position 
-        is a "good" or "bad" shape. These board shapes are arbitrary but have been chosen from a 
+        As of now a set of two simple features that return a bools of whether or not a give position
+        is a "good" or "bad" shape. These board shapes are arbitrary but have been chosen from a
         collection of games with substantial professional commentary.
         '''
         def find_pieces(board, piece_type):
             '''
-            Helper function returns the board index of a the shogi piece/s of type @piece_type 
+            Helper function returns the board index of a the shogi piece/s of type @piece_type
             that belong to the current player. @piece_type is based on shogi.PIECE_SYMBOLS
             '''
             symbol = shogi.PIECE_SYMBOLS[piece_type]
             piece = symbol.upper() if board.turn == shogi.BLACK else symbol
-            indecies = [i for i in shogi.SQUARES if board.piece_at(i) and board.piece_at(i).symbol() == piece]
+            indecies = [
+                i for i in shogi.SQUARES
+                if board.piece_at(i) and board.piece_at(i).symbol() == piece
+            ]
             return indecies
-        
+
         # -------------------------------- Features of BAD positions --------------------------------
         def gold_ahead_silver(board):
             '''
-            It is generally considered a disadvantage to have a gold piece directly in front of a 
+            It is generally considered a disadvantage to have a gold piece directly in front of a
             silver piece since the silver piece cannot move one square backwards, thus leaving an
             oppening for an opponent. It is important to note that in some situations, such a
             formation could actually be advantageous, but that consideration is left out here
@@ -380,7 +400,7 @@ class ShogiFeatures:
                     piece = board.piece_at(index_behind)
                     if piece and piece.color == board.turn and piece.piece_type == shogi.SILVER:
                         return -1
-            
+
             # Did not find stack gold/silver, return false
             return 0
 
@@ -392,26 +412,26 @@ class ShogiFeatures:
             attacks all squares ahead of it anyways.
             '''
             rook_index = find_pieces(board, shogi.ROOK)
-            if not rook_index: # Ensure a rook is in play
-                return 0 
+            if not rook_index:  # Ensure a rook is in play
+                return 0
 
-            left  = rook_index[0] - 1
+            left = rook_index[0] - 1
             right = rook_index[0] + 1
-            
+
             adjacent_squares = [rook_index[0] - 1, rook_index[0] + 1]
             for square in adjacent_squares:
                 if 0 <= square and square < 81:
                     piece = board.piece_at(square)
                     if piece and piece.color == board.turn and piece.piece_type == shogi.GOLD:
                         return -1
-            
+
             return 0
 
         def boxed_in_bishop(board):
             '''
             Return 1 if the current player has their bishop completely locked in by their own pieces.
             '''
-            MOVE_BUFFER = 10 # have a move buffer since bishops begin already boxed in
+            MOVE_BUFFER = 10  # have a move buffer since bishops begin already boxed in
 
             bishop = find_pieces(board, shogi.BISHOP)
             if not bishop:  # Insure bishop in play
@@ -431,51 +451,51 @@ class ShogiFeatures:
             '''
             Return the number of the current player's pieces that are at least BUFFER squares
             ahead of the pawn on the same file.
-            ''' 
-            SPACE_BUFFER = 2 # Set so that feature is mutually exclusive with reclining_silver()
-            RANKS_FORWARD = 3 # How many ranks forward to search, avoids penalizing late game formations
+            '''
+            SPACE_BUFFER = 2  # Set so that feature is mutually exclusive with reclining_silver()
+            RANKS_FORWARD = 3  # How many ranks forward to search, avoids penalizing late game formations
 
             pawns = find_pieces(board, shogi.PAWN)
             if not pawns:
                 return 0
-        
+
             ahead_of_pawn_count = 0
             iterator = -9 if board.turn == shogi.BLACK else 9
             for pawn in pawns:
-                
+
                 # Start check at SPACE_BUFFER squares in front of the pawn.
                 index = pawn + (SPACE_BUFFER * iterator)
-                ranks_to_search = RANKS_FORWARD  
+                ranks_to_search = RANKS_FORWARD
 
                 # Check all the remaining squares for friendly pieces
                 while 0 <= index and index < 81 and ranks_to_search > 0:
                     piece = board.piece_at(index)
                     if piece and piece.color == board.turn:
                         ahead_of_pawn_count += 1
-        
+
                     # Move forward in the file (up or down depending on perspective)
                     index += iterator
                     ranks_to_search -= 1
 
-            return -1 * ahead_of_pawn_count            
+            return -1 * ahead_of_pawn_count
 
         # -------------------------------- Features of GOOD positions -------------------------------
         def bishop_head_protected(board):
             '''
-            Since a bishop cannot move directly forward, it is generally a 'good shape' to have the 
-            square in front of the rook be protected, 
+            Since a bishop cannot move directly forward, it is generally a 'good shape' to have the
+            square in front of the rook be protected,
             '''
             bishop_index = find_pieces(board, shogi.BISHOP)
-            if not bishop_index:   # Ensure bishop in play
+            if not bishop_index:  # Ensure bishop in play
                 return 0
 
             bishop_index = bishop_index[0]
             head = bishop_index - 9 if board.turn == shogi.BLACK else bishop_index + 9
 
-            defenders = 0 
+            defenders = 0
             if 0 <= head and head < 81:
                 defenders = len(board.attackers(board.turn, head))
-                
+
             return 1 if defenders > 0 else 0
 
         def reclining_silver(board):
@@ -494,7 +514,7 @@ class ShogiFeatures:
                 return 0
 
             for silver in silvers:
-                
+
                 sides = [silver + 1, silver - 1]
 
                 # Only the bottom portion of the bench depends on player's turn
@@ -505,10 +525,10 @@ class ShogiFeatures:
                     leg = board.piece_at(leg)
                     if not leg or leg.color != board.turn or leg.piece_type != shogi.PAWN:
                         continue
-                else:   
+                else:
                     # Leg not in range, move to check next silver for a chair shape
                     continue
-                
+
                 # Now check for either left or right leaning chair
                 for pos in sides:
                     if 0 <= pos and pos < 81:
@@ -522,7 +542,7 @@ class ShogiFeatures:
         def claimed_files(board):
             '''
             A player is said to have 'claimed place in a file' if they have a pawn in the fifth rank
-            that is defended from behind. This feature returns the number of files the current 
+            that is defended from behind. This feature returns the number of files the current
             player has taken.
             '''
 
@@ -537,7 +557,7 @@ class ShogiFeatures:
                         claimed += 1
 
             return claimed
-        
+
         def adjacent_silvers(board):
             '''
             Having two silvers directly next to eachoter is considered a strong position since they
@@ -549,7 +569,7 @@ class ShogiFeatures:
                 return 0
 
             return 1 if abs(silvers[1] - silvers[0]) == 1 else 0
-        
+
         def adjacent_golds(board):
             '''
             As with silvers, adjacent golds are strong. This feature reaturns 1 if adajent golds are present.
@@ -557,13 +577,14 @@ class ShogiFeatures:
             golds = find_pieces(board, shogi.GOLD)
             if len(golds) < 2:
                 return 0
-            
+
             return 1 if abs(golds[1] - golds[0]) == 1 else 0
 
-        return [gold_ahead_silver, gold_adjacent_rook, boxed_in_bishop, piece_ahead_of_pawns,
-                bishop_head_protected, reclining_silver, claimed_files, adjacent_silvers, adjacent_golds]
-
-
+        return [
+            gold_ahead_silver, gold_adjacent_rook, boxed_in_bishop,
+            piece_ahead_of_pawns, bishop_head_protected, reclining_silver,
+            claimed_files, adjacent_silvers, adjacent_golds
+        ]
 
 
 # Used when testing the functionality of features.py on its own
@@ -576,7 +597,6 @@ class ShogiFeatures:
 #     sfen[0] = inversion
 #     sfen[1] = 'b' if sfen[1] == 'w' else 'w'
 #     return ' '.join(sfen)
-
 
 # import pickle
 # def load_obj(name):
@@ -592,7 +612,6 @@ class ShogiFeatures:
 
 #     legal_moves_cache = load_obj("legal_moves_cache")
 #     TRAIN = load_obj("train_data")
-
 
 #     # Selections that test specific 'good' / 'bad' shape features
 #     # selection = [("l6nl/2gk3p1/2nsppb2/ppSp2R2/2S5p/P1pP5/1P2PP2P/2+B6/LNKGG2+rL w 1S2P1g1n2p 72", "rando")]
@@ -626,7 +645,3 @@ class ShogiFeatures:
 #     #     H(board)
 
 #     print("Evaluated H() for {} positions, took {}s".format(positions, time.time() - start))
-
-
-        
-
