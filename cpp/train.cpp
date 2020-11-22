@@ -1,7 +1,7 @@
 #include "train.hpp"
 
 int TEST_POS_START = 0;
-int TEST_POS_END = TEST_POS_START + 100;
+int TEST_POS_END = TEST_POS_START + 1000;
 
 OrganismEvaluator::OrganismEvaluator(string moves_cache_file) : heuristic(SENTE){
 	// Load the cache of legal moves into memory
@@ -23,7 +23,6 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 
 	// Initialize shogi object based on board and best score / move to 0
 	Shogi s = load_game(board);
-	/* s.FetchMove(1); */
 	int best_score = 0, best_move = 0;
 
 	// Set the perspective for the heuristic evaluation to current player for the input board
@@ -80,9 +79,9 @@ int OrganismEvaluator::evaluate_synchronous(int* weights, int& pos) {
 	int positions = 0;
 
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
-	for (auto& game : TRAIN) {
-	/* for (int i = TEST_POS_START; i < TEST_POS_END; i++) { */
-		/* auto game = TRAIN[i]; */
+	/* for (auto& game : TRAIN) { */
+	for (int i = TEST_POS_START; i < TEST_POS_END; i++) {
+		auto game = TRAIN[i];
 		string board = game.first;
     int grandmaster_move = game.second;
 
@@ -107,9 +106,9 @@ int OrganismEvaluator::evaluate_parallel(int* weights, int&pos) {
 
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
 	#pragma omp parallel for reduction(+:correct,positions)
-	for (auto& game : TRAIN) {
-	/* for (int i = TEST_POS_START; i < TEST_POS_END; i++) { */
-		/* auto game = TRAIN[i]; */
+	/* for (auto& game : TRAIN) { */
+	for (int i = TEST_POS_START; i < TEST_POS_END; i++) {
+		auto game = TRAIN[i];
 		string board = game.first;
     int grandmaster_move = game.second;
 
@@ -152,10 +151,10 @@ char int evaluate_organism(int* weights)
 	// Uncomment for timing during featuresTests
 	auto stop = high_resolution_clock::now();
 	auto duration = duration_cast<milliseconds>(stop - start);
-	/* cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl; */
+	cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl;
 
 	// Remember to mark the cache as being full after first execution
-	/* cout << "Evaluated for " << positions << " positions" << endl; */
+	cout << "Evaluated for " << positions << " positions" << endl;
 
 	if (!evaluator.feature_cache_loaded()) {
 		evaluator.update_tt_status(true);

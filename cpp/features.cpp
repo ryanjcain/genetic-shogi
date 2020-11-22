@@ -150,6 +150,9 @@ ShogiFeatures::ShogiFeatures(int player) {
 }
 
 vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
+    // Set / Reset feature vecotr to be all 0s
+    features.clear();
+
     // Individual feature calculations
     material(s);
     king_safety(s);
