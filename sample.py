@@ -264,8 +264,11 @@ def encodePosHex(sfen):
             hand_hex += hex(white_hand[piece])[2:].upper().zfill(2)
 
     # Encode the round... -1 bc cpp has 0 indexed turns
-    round_hex = hex((int(move_num) - 1) // 256)[2:].upper().zfill(2) + \
-        hex((int(move_num) - 1) % 256)[2:].upper().zfill(2)
+    if int(move_num) > 0:
+        round_hex = hex((int(move_num) - 1) // 256)[2:].upper().zfill(2) + \
+            hex((int(move_num) - 1) % 256)[2:].upper().zfill(2)
+    else:
+        round_hex = "0000"
 
     # Combine the three portions of the encoding
     return board_hex + hand_hex + round_hex
@@ -333,7 +336,7 @@ def print_castle_dict_as_cpp_map(reverse):
         "left_mino": "9/9/9/9/9/P1P6/1PBPP4/1KS1G4/LN1G5 b - 0",
         "gold_fortress": "9/9/9/9/9/2PPP4/PPSG5/1KG6/LN7 b - 0",
         "helmet": "9/9/9/9/9/P1P6/1PSPP4/2GKG4/LN7 b - 0",
-        "crab": "9/9/9/9/9/2P1P4/PP1P5/2GSG4/LK1K5 b - 0",
+        "crab": "9/9/9/9/9/2P1P4/PP1P5/2GSG4/LN1K5 b - 0",
         "bonanza": "9/9/9/9/9/2P6/PPSPP4/2KGG4/LN7 b - 0",
         "snowroof": "9/9/9/9/9/2PPP4/PP1SS4/2G1G4/LN1K5 b - 0",
         "silver_horns_snowroof": "9/9/9/9/9/2PP1PP2/PP1SPS3/2G1G4/LN1K5 b - 0",
@@ -377,19 +380,37 @@ def print_castle_dict_as_cpp_map(reverse):
 
     if (not reverse):
         for key, val in castles.items():
-            print("{{\"{}\", {{\"{}\"}}}},".format(key, encodePosHex(val)))
+            print("{{\"{}\", \"{}\"}},".format(key, encodePosHex(val)))
     else:
         for key, val in castles.items():
-            print("{{\"{}\", {{\"{}\"}}}},".format(key + "_white",
-                                                   encodePosHex(invert(val))))
+            print("{{\"{}\", \"{}\"}},".format(key + "_white",
+                                               encodePosHex(invert(val))))
 
 
 if __name__ == "__main__":
+
+    # Print out all the CPP castles
+    # print_castle_dict_as_cpp_map(False)
+    # print_castle_dict_as_cpp_map(True)
 
     # # Test for compatability with cpp package
     # import shogi
     # test1 = "l2l5/1ks1p4/2g3+R2/1pn1K1b2/p1pP2+bs1/8l/PPSN5/LSGG5/KN2b4 w 1P1G 10"
     # test2 = "ln1gkg1nl/1r1s1s1b1/p1pp1p1pp/1p2p1p2/9/2PPP4/PP3PPPP/1B1S1S1R1/LN1GKG1NL b - 11"
+    # board = shogi.Board(test1)
+    # print(board.kif_str())
+
+    # left_mino = "9/9/9/9/9/P1P6/1PBPP4/1KS1G4/LN1G5 b - 0"
+    # hex1 = encodePosHex(left_mino)
+    # print(hex1)
+    # board = shogi.Board(left_mino)
+    # print(board)
+    # print()
+    # left_mino_white = "5g1nl/4g1sk1/4ppbp1/6p1p/9/9/9/9/9 w - 0"
+    # hex1 = encodePosHex(left_mino_white)
+    # print(hex1)
+    # board = shogi.Board(left_mino_white)
+    # print(board)
 
     # test2 = "l2l5/1ks1p4/2g3+R2/1pn1N1b2/p1pP2+bs1/8l/PPSN5/LSGG5/KN2r4 w 1G1P10p 126"
     # test2 = "+L6nl/1k5r1/1pn1S1b2/2P1s1p1p/3p1p1p1/4b1P1P/1P2+pP1P1/1Sp1p3R/KN1G3NL w 1G1L2P2g1s1p 100"
