@@ -1,7 +1,7 @@
 #include "train.hpp"
 
 int TEST_POS_START = 0;
-int TEST_POS_END = TEST_POS_START + 1000;
+int TEST_POS_END = TEST_POS_START + 20;
 
 OrganismEvaluator::OrganismEvaluator(string moves_cache_file) : heuristic(SENTE){
 	// Load the cache of legal moves into memory
@@ -38,8 +38,6 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 		Shogi result = s;
 		result.MakeMove(move);
 
-		// Update attack map used in heuristic calculations
-		result.FetchMove(1);
 
 		// Key used for the transposition table of {pos, featureVector}
 		vector<unsigned char> result_state = result.SaveGame();
@@ -49,6 +47,9 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 		if (feature_tt.count(result_state)) {
 			fV = feature_tt.at(result_state);
 		} else {
+			// Update attack map needed in heuristic calculations
+			result.FetchMove(1);
+
 			// First time seeing game state, add {pos, featureVector} to transposition table
 			fV = heuristic.feature_vec(result);
 			feature_tt.insert({result_state, fV});
