@@ -24,6 +24,7 @@ class OrganismEvaluator {
 		Shogi load_game(string board);
 
 		// Add a transpossition table to store feature vector values
+		// NOTE : MAKE THIS AN UNORDERED MAP ASAP!
 		map<vector<unsigned char>, vector<int>> feature_tt;
 		bool tt_full = false;
 };

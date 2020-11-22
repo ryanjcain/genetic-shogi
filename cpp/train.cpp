@@ -61,6 +61,9 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 			score += fV[i] * weights[i];
 		}
 
+		// Add the constatn pawn value to score
+		score += heuristic.getPawnCount() * heuristic.getPawnValue();
+
 		// Update highest score
 		if (score > best_score) {
 				best_score = score;

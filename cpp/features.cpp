@@ -143,15 +143,20 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     CASTLE_THRESHOLD = 100;
 
-    NUM_FEATURES = 20;
+    NUM_FEATURES = 19;
+
+    pawn_count = 0;
+    pawn_index = 10;
+    pawn_value = 100;
 
     // Initialize the feature vectore
     features.reserve(NUM_FEATURES);
 }
 
 vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
-    // Set / Reset feature vecotr to be all 0s
+    // Set / Reset feature vector and pawn count to 0
     features.clear();
+    pawn_count = 0;
 
     // Individual feature calculations
     material(s);
@@ -176,6 +181,9 @@ int ShogiFeatures::evaluate(Shogi s) {
     for (int i = 0; i < NUM_FEATURES; i++) {
         score += fV[i] * weights[i];
     }
+
+    // Add constant value for pawn
+    score += pawn_count * pawn_value;
 
     return score;
 }
@@ -207,8 +215,17 @@ void ShogiFeatures::material(Shogi& s) {
     }
 
     // Convert to a list of ORDERED correctly
+    int i = 0;
     for (auto& entry : counts) {
+        // Store pawn count elsewhere as pawn weight is constant
+        if (i == pawn_index) {
+            pawn_count = entry.second;
+            continue;
+        }
+
+        // Add piece count to feature vector
         features.push_back(entry.second);
+        i++;
     }
 }
 

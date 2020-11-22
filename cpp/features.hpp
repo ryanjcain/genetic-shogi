@@ -37,6 +37,8 @@ class ShogiFeatures {
         /*     map<vector<unsigned char>, vector<int>>& tt, int& hits); */
         // int evaluate(Shogi s, vector<int>& weights, int root_player);
         int num_features() { return NUM_FEATURES; }
+        int getPawnCount() { return pawn_count; }
+        int getPawnValue() { return pawn_value; }
         int getPlayer() { return player; }
         void setPlayer(int newPlayer) { player = newPlayer; }
         void setPrint(int p) { print = p; }
@@ -46,6 +48,9 @@ class ShogiFeatures {
         int player;
         int* weights;
         int NUM_FEATURES;
+        int pawn_index;
+        int pawn_count;
+        int pawn_value;
         vector<int> features;
         vector<int> generate_feature_vec(Shogi s);
         void material(Shogi& s);
