@@ -1059,9 +1059,9 @@ void Shogi::LoadGame(vector<unsigned char> digest){
 	}
 	offset = 97;
 
-	if(gomaNumber != 40){
-		SENTEKINGNUM = 39;
-	}
+	/* if(gomaNumber != 40){ */
+	/* 	SENTEKINGNUM = 39; */
+	/* } */
 
 	round = 0;
 	round += digest[offset] * 256;
