@@ -1,6 +1,6 @@
 #include "helper.hpp"
 #include "lmcache.hpp"
-#include <chrono> 
+#include <chrono>
 #include <numeric>
 #include <map>
 #include <iostream>
@@ -12,10 +12,10 @@ vector<pair<string, int>> loadGames(string in_file);
 
 class ShogiFeatures {
     public:
-        
-        ShogiFeatures();
+
+        ShogiFeatures(int player);
         /* ShogiFeatures() { this->weights = NULL; NUM_FEATURES = 20; }; */
-        ShogiFeatures(int* weights) : ShogiFeatures() { this->weights = weights; };
+        ShogiFeatures(int player, int* weights) : ShogiFeatures(player) { this->weights = weights; };
         /* ShogiFeatures(string cache_file); */
         vector<int> gote_camp;
         vector<int> sente_camp;
@@ -31,22 +31,28 @@ class ShogiFeatures {
 
 
         // Multiple methods for evaluate depending on use in training or search
-        int evaluate(Shogi s, int root_player);
-        vector<int> feature_vec(Shogi s, int player) { return this->generate_feature_vec(s, player); };
+        int evaluate(Shogi s);
+        vector<int> feature_vec(Shogi s) { return this->generate_feature_vec(s); };
         /* int evaluate(Shogi s, int* test_weights, int root_player, \ */
         /*     map<vector<unsigned char>, vector<int>>& tt, int& hits); */
         // int evaluate(Shogi s, vector<int>& weights, int root_player);
         int num_features() { return NUM_FEATURES; }
+        int getPlayer() { return player; }
+        void setPlayer(int newPlayer) { player = newPlayer; }
+        void setPrint(int p) { print = p; }
 
     private:
+        int print;
+        int player;
         int* weights;
         int NUM_FEATURES;
-        vector<int> generate_feature_vec(Shogi s, int root_player);
-        void material(Shogi& s, int player, vector<int>& featVec);
-        void king_safety(Shogi& s, int player, vector<int>& featVec);
-        void pieces_in_hand(Shogi& s, int player, vector<int>& featVec);
-        void controlled_squares(Shogi& s, int player, vector<int>& featVec);
-        void castle(Shogi& s, int player, vector<int>& featVec);
-        void board_shape(Shogi& s, int player, vector<int>& featVec);
+        vector<int> features;
+        vector<int> generate_feature_vec(Shogi s);
+        void material(Shogi& s);
+        void king_safety(Shogi& s);
+        void pieces_in_hand(Shogi& s);
+        void controlled_squares(Shogi& s);
+        void castle(Shogi& s);
+        void board_shape(Shogi& s);
 };
 

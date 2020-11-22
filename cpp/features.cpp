@@ -1,7 +1,10 @@
 #include "features.hpp"
 #include <omp.h>
 
-ShogiFeatures::ShogiFeatures() {
+ShogiFeatures::ShogiFeatures(int player) {
+
+    // Set the color (perspective) for the heuristic to be evaluated
+    this->player = player;
 
     // Initialize weights to null if not provided
     weights = NULL;
@@ -28,7 +31,7 @@ ShogiFeatures::ShogiFeatures() {
         {"left_mino", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0007FFFFFFFFFFFFFF00FF07FFFFFFFFFF000501FFFFFFFFFFFFFF000602FFFFFFFFFF00FFFF03000000000000000000000000000000000000"},
         {"gold_fortress", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FFFFFFFFFFFFFFFF0007FFFFFFFFFFFFFF000107FFFFFFFFFFFFFF000602FFFFFFFFFFFF00FF03000000000000000000000000000000000000"},
         {"helmet", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0007FFFFFFFFFFFFFF0006FFFFFFFFFFFF000107FFFFFFFFFFFFFF00FF02FFFFFFFFFF00FFFF03000000000000000000000000000000000000"},
-        {"crab", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FF07FFFFFFFFFFFFFF000106FFFFFFFFFF00FF07FFFFFFFFFFFFFF00FF06FFFFFFFFFFFF00FF03000000000000000000000000000000000000"},
+        {"crab", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FF07FFFFFFFFFFFFFF000106FFFFFFFFFF00FF07FFFFFFFFFFFFFF00FF02FFFFFFFFFFFF00FF03000000000000000000000000000000000000"},
         {"bonanza", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0007FFFFFFFFFFFFFF0007FFFFFFFFFFFF000106FFFFFFFFFFFFFF00FF02FFFFFFFFFFFF00FF03000000000000000000000000000000000000"},
         {"snowroof", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000107FFFFFFFFFFFF0001FF06FFFFFFFFFF00FF07FFFFFFFFFFFFFF00FF02FFFFFFFFFFFF00FF03000000000000000000000000000000000000"},
         {"silver_horns_snowroof", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00FFFFFFFFFFFFFFFF0001FFFFFFFFFFFFFFFF0007FFFFFFFFFFFF0001FF06FFFFFFFFFF00FF07FFFFFFFFFFFFFF00FF02FFFFFFFFFFFF00FF03000000000000000000000000000000000000"},
@@ -74,7 +77,7 @@ ShogiFeatures::ShogiFeatures() {
         {"left_mino_white", "13FFFF10FFFFFFFFFF121610FFFFFFFFFFFFFF111510FFFFFFFFFF17FF10FFFFFFFFFFFFFF1710FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
         {"gold_fortress_white", "13FF10FFFFFFFFFFFF121610FFFFFFFFFFFFFF171110FFFFFFFFFFFFFF1710FFFFFFFFFFFFFFFF10FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
         {"helmet_white", "13FFFF10FFFFFFFFFF12FF10FFFFFFFFFFFFFF171110FFFFFFFFFFFF1610FFFFFFFFFFFFFF1710FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
-        {"crab_white", "13FF10FFFFFFFFFFFF16FF10FFFFFFFFFFFFFF17FF10FFFFFFFFFF161110FFFFFFFFFFFFFF17FF10FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
+        {"crab_white", "13FF10FFFFFFFFFFFF12FF10FFFFFFFFFFFFFF17FF10FFFFFFFFFF161110FFFFFFFFFFFFFF17FF10FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
         {"bonanza_white", "13FF10FFFFFFFFFFFF12FF10FFFFFFFFFFFFFF161110FFFFFFFFFFFF1710FFFFFFFFFFFFFF1710FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
         {"snowroof_white", "13FF10FFFFFFFFFFFF12FF10FFFFFFFFFFFFFF17FF10FFFFFFFFFF16FF1110FFFFFFFFFFFF171110FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
         {"silver_horns_snowroof_white", "13FF10FFFFFFFFFFFF12FF10FFFFFFFFFFFFFF17FF10FFFFFFFFFF16FF1110FFFFFFFFFFFF1710FFFFFFFFFFFFFFFF1110FFFFFFFFFFFFFFFF10FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000000000000000"},
@@ -120,13 +123,13 @@ ShogiFeatures::ShogiFeatures() {
     //      Doing this manually because the board ordering is strange:
     //
     //          72 63 54 45 36 27 18 09 00
-    //          73 .. .. .. .. .. .. .. 01
-    //          74 .. .. .. .. .. .. .. 02
-    //          75 .. .. .. .. .. .. .. 03
-    //          76 .. .. .. .. .. .. .. 04
-    //          77 .. .. .. .. .. .. .. 05
-    //          78 .. .. .. .. .. .. .. 06
-    //          79 .. .. .. .. .. .. .. 07
+    //          73 64 55 46 37 28 19 10 01
+    //          74 65 56 47 38 29 20 11 02
+    //          75 66 57 48 39 30 21 12 03
+    //          76 67 58 49 40 31 22 13 04
+    //          77 68 59 50 41 32 23 14 05
+    //          78 69 60 51 42 33 24 15 06
+    //          79 70 61 52 43 34 25 16 07
     //          80 71 62 53 44 35 26 17 08
 
 
@@ -138,36 +141,32 @@ ShogiFeatures::ShogiFeatures() {
                   79, 70, 61, 52, 43, 34, 25, 16, 7,
                   80, 71, 62, 53, 44, 35, 26, 17, 8};
 
-    CASTLE_THRESHOLD = 2;
+    CASTLE_THRESHOLD = 100;
 
     NUM_FEATURES = 20;
 
+    // Initialize the feature vectore
+    features.reserve(NUM_FEATURES);
 }
 
-vector<int> ShogiFeatures::generate_feature_vec(Shogi s, int player) {
-    // Feature vector
-    vector<int> fV;
-    fV.reserve(NUM_FEATURES);
-
+vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
     // Individual feature calculations
-    material(s, player, fV);
-    king_safety(s, player, fV);
-    pieces_in_hand(s, player, fV);
-    controlled_squares(s, player, fV);
-    castle(s, player, fV);
-    board_shape(s, player, fV);
+    material(s);
+    king_safety(s);
+    pieces_in_hand(s);
+    controlled_squares(s);
+    castle(s);
+    board_shape(s);
 
-    return fV;
+    return features;
 }
 
 // Read evolution.py to see explenation of these features
-int ShogiFeatures::evaluate(Shogi s, int player) {
-    /* Evaluate the shogi position s from the perspective
-        of @player (SENTE or GOTE)
-    */
+int ShogiFeatures::evaluate(Shogi s) {
+    /* Evaluate the shogi position s from the perspective of root player (maximizer) */
 
     // Feature vector
-    vector<int> fV = generate_feature_vec(s, player);
+    vector<int> fV = generate_feature_vec(s);
 
     // Calculate heuristic score based internal weights
     int score = 0;
@@ -178,47 +177,8 @@ int ShogiFeatures::evaluate(Shogi s, int player) {
     return score;
 }
 
-// Read evolution.py to see explenation of these features
-/* int ShogiFeatures::evaluate(Shogi s, int *test_weights, int player,*/
-/*                             map<vector<unsigned char>, vector<int>> &tt, int& hits) {*/
-
-/*   int NUM_FEATURES = 20;*/
-/*   vector<unsigned char> game_state = s.SaveGame();*/
-
-/*   // Feature vector*/
-/*   vector<int> fV;*/
-/*   fV.reserve(NUM_FEATURES);*/
-
-/*   // See if the feature value already in transposition table*/
-/*   if (tt.count(game_state)) {*/
-/*     fV = tt.at(game_state);*/
-/*     hits++;*/
-/*   } else {*/
-/*     // Reserve memory and populate feature vector*/
-/*     fV.reserve(NUM_FEATURES); */
-
-/*     // Individual feature calculations*/
-/*     material(s, player, fV);*/
-/*     king_safety(s, player, fV);*/
-/*     pieces_in_hand(s, player, fV);*/
-/*     controlled_squares(s, player, fV);*/
-/*     castle(s, player, fV);*/
-/*     board_shape(s, player, fV);*/
-
-/*     // Add the feature to the transposition table*/
-/*     tt.insert({game_state, fV});*/
-/*   }*/
-
-/*   // Calculate heuristic score based on weights*/
-/*   int score = 0;*/
-/*   for (int i = 0; i < NUM_FEATURES; i++) {*/
-/*     score += fV[i] * test_weights[i];*/
-/*   }*/
-
-/*   return score;*/
-/* }*/
-
-void ShogiFeatures::material(Shogi& s, int player, vector<int>& featVec) {
+// VISUALLY CHECKED
+void ShogiFeatures::material(Shogi& s) {
     // Counts the number of pieces the current player has and returns them in the
     //      following order: +b, +l, +n, +p, +r, +s, b, g, l, n, p, r, s,
 
@@ -226,9 +186,6 @@ void ShogiFeatures::material(Shogi& s, int player, vector<int>& featVec) {
     map<string, int> counts = {{"p", 0}, {"l", 0}, {"n", 0}, {"s", 0}, {"g", 0}, {"b", 0}, {"r", 0},
                               {"+p", 0}, {"+l", 0}, {"+n", 0}, {"+s", 0}, {"+b", 0}, {"+r", 0}
                               };
-
-    // Determine whose playing
-    // int player = (s.round & 1);
 
     // Iterate through all 40 pieces available (i == piece number)
     for (int i = 0; i < 40; i++) {
@@ -248,18 +205,17 @@ void ShogiFeatures::material(Shogi& s, int player, vector<int>& featVec) {
 
     // Convert to a list of ORDERED correctly
     for (auto& entry : counts) {
-        featVec.push_back(entry.second);
+        features.push_back(entry.second);
     }
 }
 
-void ShogiFeatures::king_safety(Shogi& s, int player, vector<int>& featVec) {
+// VISUALLY CHECKED
+void ShogiFeatures::king_safety(Shogi& s) {
+    // NOTE : Maybe make return the ratio instead of raw cout (threats / defenders) etc
+    // or (defenders / 8) or (defense / escape) or something else?
     // Set of features that represent the overall safety of the king
 
-    // Initialize the array of results. Order is thickness, escape routes, threats
-    vector<int> res = {0, 0, 0};
-
     // Get all of the valid squares surrounding the king
-    // int player = s.round & 1;
     int opponent = (player ^ 1);
     int king_pos = (player == SENTE) ?
                     s.gomaPos[s.SENTEKINGNUM] :
@@ -267,20 +223,30 @@ void ShogiFeatures::king_safety(Shogi& s, int player, vector<int>& featVec) {
 
     // Could be a terminal position with no king (NOTE : check correctness here!)
     if (king_pos == -1) {
-        featVec.push_back(0);
-        featVec.push_back(0);
-        featVec.push_back(0);
+        features.push_back(0);
+        features.push_back(0);
+        features.push_back(0);
+        return;
     }
 
-    // Convert king 0-81 position to row and column number
-    int r = posDan(king_pos);
-    int c = posSuji(king_pos);
-
     // Find adjacent squares
-    vector<pair<int, int>> adjacent = {
-        {r-1,c-1}, {r-1,c}, {r-1,c+1}, {r,c-1},
-        {r,c+1}, {r+1,c-1}, {r+1,c}, {r+1,c+1}};
+    vector<int> adjacent;
 
+    // Add adacent pieces above king as long as not in topmost row
+    if (king_pos % 9 != 0) {
+        int king_top = king_pos - 1;
+        adjacent.insert(adjacent.end(), {king_top + 9, king_top, king_top - 9});
+    }
+
+    // Add adjacent pieces below the king as long as not in bottom most row
+    if (king_pos % 9 != 8) {
+        int king_bot = king_pos + 1;
+        adjacent.insert(adjacent.end(), {king_bot + 9, king_bot, king_bot - 9});
+    }
+
+    // Add pieces to left and right if not off edge of board
+    adjacent.push_back(king_pos + 9);
+    adjacent.push_back(king_pos - 9);
 
     // Initialize our features
     int defenders = 0;               /* Same as 'thickness' */
@@ -288,39 +254,37 @@ void ShogiFeatures::king_safety(Shogi& s, int player, vector<int>& featVec) {
     int threats = 0;
 
     // Loop through adj. sqrs and determine thickness, escape routes, threats
-    for (auto& coord : adjacent) {
+    for (auto& pos : adjacent) {
+        // Skip if the position off the left or right edge of board
+        if (0 <= pos and pos <= 80) {
+            // Defenders
+            if (s.boardChesser[pos] == player)
+                defenders++;
 
-        int row = coord.first;
-        int col = coord.second;
-        int pos = genPos(row, col);
+            // Escape routes
+            if (s.board[pos] == -1)
+                escape_routes++;
 
-        // Skip if the position off the edge of board
-        if (pos == -1) continue;
-
-        // // Get the piece at the adjacent position
-        // int gomanum = s.board[pos];
-
-        // Defenders
-        if (s.boardChesser[pos] == player)
-            defenders++;
-
-        // Escape routes
-        if (s.board[pos] == -1)
-            escape_routes++;
-
-        // Threats
-        threats += s.boardFixedAttacking[opponent][pos].size();
-        threats += s.boardFlowAttacking[opponent][pos].size();
+            // Check both single and multi square moves
+            threats += s.boardFixedAttacking[opponent][pos].size();
+            threats += s.boardFlowAttacking[opponent][pos].size();
+        }
     }
 
-
     // Add to our feature vector
-    featVec.push_back(defenders);
-    featVec.push_back(escape_routes);
-    featVec.push_back(threats);
+    features.push_back(defenders);
+    features.push_back(escape_routes);
+    features.push_back(threats);
+    /* if (print) { */
+    /*     cout << "Defenders: " << defenders << endl; */
+    /*     cout << "Escape: " << escape_routes << endl; */
+    /*     cout << "Threats: " << threats << endl; */
+    /* } */
+    /* print = false; */
 }
 
-void ShogiFeatures::pieces_in_hand(Shogi& s, int player, vector<int>& featVec) {
+// VISUALLY CHECKED
+void ShogiFeatures::pieces_in_hand(Shogi& s) {
 
     // int player = (s.round & 1);
     int piece_cnt = 0;
@@ -331,39 +295,62 @@ void ShogiFeatures::pieces_in_hand(Shogi& s, int player, vector<int>& featVec) {
         piece_cnt += s.gomaTable[I].size();
     }
 
-    featVec.push_back(piece_cnt);
+    features.push_back(piece_cnt);
 }
 
-void ShogiFeatures::controlled_squares(Shogi& s, int player, vector<int>& featVec) {
+// VISUALLY CHECKED
+void ShogiFeatures::controlled_squares(Shogi& s) {
 
-    // int player = (s.round & 1);
+    // Initialize opponent based on perspective of the heuristic
     int opponent = (player ^ 1);
 
     // Initialize the camps based on the player
-    vector<int> home_camp(27);
-    vector<int> oppn_camp(27);
-    home_camp = (player == SENTE) ? sente_camp : gote_camp;
-    oppn_camp = (player == SENTE) ? gote_camp  : sente_camp;
+    vector<int>& home_camp = (player == SENTE) ? sente_camp : gote_camp;
+    vector<int>& oppn_camp = (player == SENTE) ? gote_camp  : sente_camp;
 
-    // Find In-camp freedom
-    int in_camp_freedom = 0;
+    // Find "in-camp-vulnerability", num of squares in home camp that are more
+    // attacked than defended
+    int vulnerable = 0;
     for (int pos : home_camp) {
         int piece = s.board[pos];
-        if (piece == -1 /* empty square */
-            && s.boardFixedAttacking[opponent][pos].size() == 0
-            && s.boardFlowAttacking[opponent][pos].size() == 0) {
-                in_camp_freedom++;
+        if (piece == -1) continue; /* skip if empty */
+
+        if (s.boardChesser[pos] == player) {
+            int attackers = 0;
+            int defenders = 0;
+
+            attackers += s.boardFixedAttacking[opponent][pos].size();
+            attackers += s.boardFlowAttacking[opponent][pos].size();
+            defenders += s.boardFixedAttacking[player][pos].size();
+            defenders += s.boardFlowAttacking[player][pos].size();
+
+            if (attackers > defenders) {
+                /* if (print) cout << "Vulnerable: " << pos << endl; */
+                vulnerable++;
             }
+        }
     }
 
+
+    // Maybe include in camp freedom as another feature?
+    /* int in_camp_freedom = 0; */
+    /* for (int pos : home_camp) { */
+    /*     int piece = s.board[pos]; */
+    /*     if (piece == -1 /1* empty square *1/ */
+    /*         && s.boardFixedAttacking[opponent][pos].size() == 0 */
+    /*         && s.boardFlowAttacking[opponent][pos].size() == 0) { */
+    /*             in_camp_freedom++; */
+    /*         } */
+    /* } */
+
     // Find "out-camp-attack", num of squares in opp camp that are
-    //  more attacked than defended
-    int vulnerable = 0;
+    //  current player is attacking more than the opponent is defending
+    int attacking = 0;
     for (int pos : oppn_camp) {
         int piece = s.board[pos];
         if (piece == -1) continue; /* skip if empty */
 
-        if (gomakindChesser(piece) == opponent) {
+        if (s.boardChesser[pos] == opponent) {
             int attackers = 0;
             int defenders = 0;
 
@@ -373,19 +360,30 @@ void ShogiFeatures::controlled_squares(Shogi& s, int player, vector<int>& featVe
             defenders += s.boardFlowAttacking[opponent][pos].size();
 
             if (attackers > defenders) {
-                vulnerable += 1;
+                /* if (print) cout << "Attacking pos: " << pos << endl; */
+                attacking++;
             }
         }
     }
 
     // Add results to the feature vector
-    featVec.push_back(in_camp_freedom);
-    featVec.push_back(vulnerable);
+    features.push_back(vulnerable);
+    features.push_back(attacking);
+
+    /* if (print and (attacking > 0 or vulnerable > 0)) { */
+    /*   s.EasyBoardPrint(); */
+    /*   cout << "perspective: " << player << endl; */
+    /*   cout << "Attacking: " << attacking << endl; */
+    /*   cout << "Vulnerable: " << vulnerable << endl; */
+    /*   print_vec(home_camp_occupied); */
+    /*   cout << endl; */
+    /* } */
+
+    /* print = false; */
 }
 
-void ShogiFeatures::castle(Shogi& s, int player, vector<int>& featVec) {
-
-    // int player = (s.round & 1);
+// VISUALLY CHECKED
+void ShogiFeatures::castle(Shogi& s) {
 
     map<string, string>& castles = (player == SENTE) ?
                                     black_castles : white_castles;
@@ -394,8 +392,11 @@ void ShogiFeatures::castle(Shogi& s, int player, vector<int>& featVec) {
                 s.gomaPos[s.SENTEKINGNUM] :
                 s.gomaPos[s.GOTEKINGNUM];
 
-
     // Determine if we are within the threshold of at least one proper castle
+    int closest_match = 0;
+    /* string name = ""; */
+    /* Shogi best_castle; */
+    /* int best_castle_size = 0; */
     for (auto& entry : castles) {
         auto board = entry.second;
 
@@ -404,47 +405,66 @@ void ShogiFeatures::castle(Shogi& s, int player, vector<int>& featVec) {
         c.Init();
         c.LoadGame(load_hex_vector(board));
 
+        int castle_king = (player == SENTE) ?
+            c.gomaPos[c.SENTEKINGNUM] :
+            c.gomaPos[c.GOTEKINGNUM];
+
+
+        // Only consider a potential castle formation if player's king in correct spot
+        if (king_pos != castle_king) continue;
+
         // See if other pieces are within the threshold
-        int incorrect = 0;
-        int king_in_place = 1;
+        int correct = 0;
+        int total_castle_pieces = 0;
         for (int pos = 0; pos < 81; pos++) {
 
-            // Skip if position empty
+            // Skip if castle square empty
             if (c.board[pos] == -1) continue;
+            total_castle_pieces++;
 
-            // Get the piece in castle formation we need to compare to
+            // Ignore king position in count since checked above
+            if (pos == castle_king) continue;
+
+            // Skip if castle has a piece at square but player's is empty
+            if (s.board[pos] == -1) continue;
+
+            // Otherwise player has a piece in same square as castle, check if same piece
             int castle_gomaNum = c.board[pos];
-            int castle_gomaKind = c.gomaKind[castle_gomaNum];
-
-            // See if player has a piece in same spot
             int player_gomaNum = s.board[pos];
-            if (player_gomaNum == -1) {
-                incorrect++;
-            } else {
-                // There is definitely a piece on players board at same spot, compare
-                int player_gomaKind = s.gomaKind[player_gomaNum];
-                if (castle_gomaKind != player_gomaKind)
-                    incorrect++;
-            }
+            int castle_gomaKind = c.gomaKind[castle_gomaNum];
+            int player_gomaKind = s.gomaKind[player_gomaNum];
 
-            // Not counted as correct if incorret piece was the king's position
-            if (castle_gomaKind == genGomakind(KING, NORMAL, player)) {
-                king_in_place = 0;
-            }
+            if (player_gomaKind == castle_gomaKind)
+                correct++;
         }
 
-        // Return immediately if we were within threshold of a castle
-        if (king_in_place && incorrect <= CASTLE_THRESHOLD) {
-            featVec.push_back(1);
-            return;
+        // See if current castle better than best so far
+        if (correct > closest_match) {
+            closest_match = correct;
+            /* name = entry.first; */
+            /* best_castle_size = total_castle_pieces; */
         }
     }
 
-    // Add 0 to feat vec if made it through all castles without finding match
-    featVec.push_back(0);
+    /* if (closest_match > 0 and print) { */
+    /*     s.EasyBoardPrint(); */
+    /*     cout << "--- " << name << " ---" << endl; */
+    /*     Shogi c; */
+    /*     c.Init(); */
+    /*     c.LoadGame(load_hex_vector(castles[name])); */
+    /*     c.EasyBoardPrint(); */
+
+    /*     cout << "Correct: " << closest_match << endl; */
+    /*     cout << "Castle Size: " << best_castle_size << endl; */
+    /* } */
+
+    // Add the number of matching pieces in the closest castle formation to feature vector
+    features.push_back(closest_match);
+
+    /* print = false; */
 }
 
-void ShogiFeatures::board_shape(Shogi& s, int player, vector<int>& featVec) {
+void ShogiFeatures::board_shape(Shogi& s) {
     // Not implemented yet, see features.py to see shapes
     return;
 }
