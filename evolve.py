@@ -25,7 +25,7 @@ def gray2bin(bits):
     return b
 
 
-def gray_bits_to_weights(individual, width):
+def gray_bits_to_ints(individual, width):
     '''
     Take an individual list of N bits and break it into N / width gray encoded segments,
     then decodes them to integers. Caches mean a O(1) lookup!
@@ -101,14 +101,18 @@ def grandMasterEval(individual):
     '''
 
     # Decode the organism's gray encode bit string to a set of integer weights
-    weights = gray_bits_to_weights(individual, cfg.BIT_WIDTH)
+    cutoff = cfg.NUM_PIECE_TYPES * cfg.BIT_WIDTH_WIDE
+    piece_weights = gray_bits_to_ints(individual[0:cutoff], cfg.BIT_WIDTH_WIDE)
+    other_weights = gray_bits_to_ints(individual[cutoff:], cfg.BIT_WIDTH_SMALL)
+
+    weights = piece_weights + other_weights
 
     # Record evaluation time of the individual for logging reports
     start = time.time()
 
     # Call the C or Python evaluation functions
     if cfg.EVAL_LANG == "C++":
-        seq = cfg.ctypes.c_int * cfg.NUM_FEATURES
+        seq = cfg.ctypes.c_int * (cfg.NUM_FEATURES + cfg.NUM_PIECE_TYPES)
         fitness = cfg.CPP_SHOGI.evaluate_organism(seq(*weights))
     elif cfg.EVAL_LANG == "Python":
         fitness = pythonEval(weights)
@@ -300,14 +304,24 @@ toolbox.register("select", tools.selRoulette)
 # Caches for encoding and decoding gray chromosomes
 gray2bit_cache = {
     tuple(bin2gray(list(x))): tuple(x)
-    for x in itertools.product((0, 1), repeat=cfg.BIT_WIDTH)
+    for x in itertools.product((0, 1), repeat=cfg.BIT_WIDTH_SMALL)
 }
+gray2bit_cache_large = {
+    tuple(bin2gray(list(x))): tuple(x)
+    for x in itertools.product((0, 1), repeat=cfg.BIT_WIDTH_WIDE)
+}
+gray2bit_cache.update(gray2bit_cache_large)
 
 digits = ['0', '1']
 bit2int_cache = {
     tuple(x): int("".join([digits[y] for y in x]), 2)
-    for x in itertools.product((0, 1), repeat=cfg.BIT_WIDTH)
+    for x in itertools.product((0, 1), repeat=cfg.BIT_WIDTH_SMALL)
 }
+bit2int_cache_large = {
+    tuple(x): int("".join([digits[y] for y in x]), 2)
+    for x in itertools.product((0, 1), repeat=cfg.BIT_WIDTH_WIDE)
+}
+bit2int_cache.update(bit2int_cache_large)
 
 
 def log_params(console=False):
@@ -317,7 +331,7 @@ def log_params(console=False):
         cfg.log("Utilizing {} CPUs".format(mp.cpu_count()), console=console)
     cfg.log("Chromosome length: {}".format(cfg.CHROMOSOME_LEN),
             console=console)
-    cfg.log("Bit width: {}".format(cfg.BIT_WIDTH), console=console)
+    cfg.log("Bit width: {}".format(cfg.BIT_WIDTH_SMALL), console=console)
     cfg.log("Shogi Features: {}".format(cfg.NUM_FEATURES), console=console)
 
     cfg.log("\n---------- GA Parameters ---------", console=console)
@@ -370,14 +384,14 @@ def main():
 
     # Record the best individual from all N generations
     cfg.log("\n--------------- Best Individual ---------------")
-    for weight in gray_bits_to_weights(hof[0], cfg.BIT_WIDTH):
+    for weight in gray_bits_to_ints(hof[0], cfg.BIT_WIDTH_SMALL):
         cfg.log("{},".format(weight), end=" ")
 
     # Record the Final Population
     cfg.log("\n\n--------------- Final popluation ---------------")
     if pop:
         for ind in pop:
-            for weight in gray_bits_to_weights(ind, cfg.BIT_WIDTH):
+            for weight in gray_bits_to_ints(ind, cfg.BIT_WIDTH_SMALL):
                 cfg.log("{},".format(weight), end=" ")
             cfg.log("\n")
 

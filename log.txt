@@ -1,0 +1,14 @@
+---------- Misc Settings ---------
+Evaluation Language: C++
+Chromosome length: 244
+Bit width: 6
+Shogi Features: 6
+
+---------- GA Parameters ---------
+Training data (N) = 5000
+Population size = 100
+Crossover Probability = 0.75
+Mutation Probability = 0.005
+Generations = 200
+
+---------- GA Results -----------
