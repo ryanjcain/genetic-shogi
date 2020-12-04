@@ -68,7 +68,7 @@ elif EVAL_LANG == "C++":
     # Bring in the Cpp library
     CPP_SHOGI = ctypes.CDLL("./cpp/shogilib.so")
     NUM_FEATURES = 6
-    NUM_PIECE_TYPES = 13
+    NUM_PIECE_TYPES = 9
 
 else:
     print("Unsupported evaluation language: {}".format(cfg.EVAL_LANG))
@@ -77,7 +77,7 @@ else:
 
 # Number of bits used to represent a single weight
 BIT_WIDTH_SMALL = 6
-BIT_WIDTH_WIDE = 16
+BIT_WIDTH_WIDE = 12  # Paper used 16 for pieces
 
 CHROMOSOME_LEN = (BIT_WIDTH_SMALL * NUM_FEATURES) + \
     (NUM_PIECE_TYPES * BIT_WIDTH_WIDE)
