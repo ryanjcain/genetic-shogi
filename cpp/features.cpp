@@ -143,10 +143,10 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     CASTLE_THRESHOLD = 100;
 
-    NUM_FEATURES = 19;
+    NUM_FEATURES = 15;
 
     pawn_count = 0;
-    pawn_index = 10;
+    pawn_index = 0;
     pawn_value = 100;
 
     // Initialize the feature vectore
@@ -176,14 +176,11 @@ int ShogiFeatures::evaluate(Shogi s) {
     // Feature vector
     vector<int> fV = generate_feature_vec(s);
 
-    // Calculate heuristic score based internal weights
-    int score = 0;
-    for (int i = 0; i < NUM_FEATURES; i++) {
+    // Initialize score with pawn value and accumulate other features with weights
+    int score = fV[0] * pawn_value;
+    for (int i = 1; i < NUM_FEATURES; i++) {
         score += fV[i] * weights[i];
     }
-
-    // Add constant value for pawn
-    score += pawn_count * pawn_value;
 
     return score;
 }
@@ -191,42 +188,52 @@ int ShogiFeatures::evaluate(Shogi s) {
 // VISUALLY CHECKED
 void ShogiFeatures::material(Shogi& s) {
     // Counts the number of pieces the current player has and returns them in the
-    //      following order: +b, +l, +n, +p, +r, +s, b, g, l, n, p, r, s,
+    //      order of piece_strings class variable with counts of pieces that count
+    //      as gold at the end.
 
-    // Ensure that all pieces are included
-    map<string, int> counts = {{"p", 0}, {"l", 0}, {"n", 0}, {"s", 0}, {"g", 0}, {"b", 0}, {"r", 0},
-                              {"+p", 0}, {"+l", 0}, {"+n", 0}, {"+s", 0}, {"+b", 0}, {"+r", 0}
-                              };
+    // First val in pair is current player count, second is opponent piece count
+    map<string, pair<int, int>> piece_counts = {
+        {"p", {0, 0}},  {"l", {0, 0}},  {"n", {0, 0}},  {"s", {0, 0}},  {"g", {0, 0}},
+        {"b", {0, 0}},  {"r", {0, 0}},  {"+p", {0, 0}}, {"+l", {0, 0}}, {"+n", {0, 0}},
+        {"+s", {0, 0}}, {"+b", {0, 0}}, {"+r", {0, 0}}
+    };
 
     // Iterate through all 40 pieces available (i == piece number)
     for (int i = 0; i < 40; i++) {
         // Skip if the piece is in the hand
         if (s.gomaPos[i] == -1) continue;
 
-        // See if the piece belongs to the current player
+        // Get possetion for that piece and if it is upgraded or not
         int piece_type = s.gomaKind[i];
         int id = gomakindID(piece_type);
+        int upgrade = gomakindUP(piece_type);
+
+        // Get string representation and add to appropriate map
+        string piece = piece_map[{id, upgrade}];
         if (gomakindChesser(piece_type) == player && id != KING) {
-            int upgrade = gomakindUP(piece_type);
-
-            string piece = piece_map[{id, upgrade}];
-            counts[piece]++;
+            piece_counts[piece].first++;
+        } else {
+            piece_counts[piece].second++;
         }
     }
 
-    // Convert to a list of ORDERED correctly
-    int i = 0;
-    for (auto& entry : counts) {
-        // Store pawn count elsewhere as pawn weight is constant
-        if (i == pawn_index) {
-            pawn_count = entry.second;
-            continue;
-        }
+    // Add the relevant pieces to the feature vector
+    int gold_count = 0;
+    for (auto& piece : piece_strings) {
 
-        // Add piece count to feature vector
-        features.push_back(entry.second);
-        i++;
+        // Difference between player one and player two counts
+        int diff = piece_counts[piece].first - piece_counts[piece].second;
+
+        // Tally up all the pieces that move same as a gold if param specified
+        if (move_as_gold.count(piece)) {
+            gold_count += diff;
+        } else {
+            features.push_back(diff);
+        }
     }
+
+    // Finally add in the total diff in pieces that move same as gold
+    features.push_back(gold_count);
 }
 
 // VISUALLY CHECKED

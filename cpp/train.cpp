@@ -1,5 +1,6 @@
 #include "train.hpp"
 
+#define DEBUG 0
 int TEST_POS_START = 0;
 int TEST_POS_END = TEST_POS_START + 5000;
 
@@ -31,7 +32,12 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 
 	// Loop though all possible moves reachable from board state
 	int hits = 0;
+	int p = 0;
 	for (auto &action : cache.legal_moves[board]) {
+
+		// Only look at one move in debug mode
+		if (DEBUG and p) continue;
+
 		int move = action.first;
 
 		// Initialize new board and make the move
@@ -55,14 +61,23 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 			feature_tt.insert({result_state, fV});
 		}
 
-		// Calculate score based on given weights
-		int score = 0;
-		for (int i = 0; i < heuristic.num_features(); i++) {
-			score += fV[i] * weights[i];
+		// Print the board and the feature vector
+		if (DEBUG and !p) {
+			cout << "----------------------------------------" << endl;
+			result.EasyBoardPrint();
+			cout << endl;
+			cout << "Player: " << player << endl;
+			print_vec(fV);
+			cout << "----------------------------------------" << endl;
+			p = 1;
 		}
 
-		// Add the constatn pawn value to score
-		score += heuristic.getPawnCount() * heuristic.getPawnValue();
+
+    // Initialize score with pawn value and accumulate other features with weights
+    int score = fV[0] * heuristic.getPawnValue();
+    for (int i = 1; i < heuristic.num_features(); i++) {
+        score += fV[i] * weights[i];
+    }
 
 		// Update highest score
 		if (score > best_score) {

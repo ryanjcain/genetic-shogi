@@ -52,6 +52,13 @@ class ShogiFeatures {
         int pawn_count;
         int pawn_value;
         vector<int> features;
+
+        vector<string> piece_strings = {"p", "l", "n", "s", "b", "r", "+b", "+r", "g",
+            "+p", "+l", "+n", "+s"};
+
+        // Pieces that move the same as gold
+        map<string, int> move_as_gold = {{"g", 1}, {"+n", 1}, {"+s", 1}, {"+l", 1}, {"+p", 1}};
+
         vector<int> generate_feature_vec(Shogi s);
         void material(Shogi& s);
         void king_safety(Shogi& s);
