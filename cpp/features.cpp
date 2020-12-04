@@ -132,7 +132,6 @@ ShogiFeatures::ShogiFeatures(int player) {
     //          79 70 61 52 43 34 25 16 07
     //          80 71 62 53 44 35 26 17 08
 
-
     gote_camp = {72, 63, 54, 45, 36, 27, 18,  9, 0,
                  73, 64, 55, 46, 37, 28, 19, 10, 1,
                  74, 65, 56, 47, 38, 29, 20, 11, 2};
@@ -141,9 +140,11 @@ ShogiFeatures::ShogiFeatures(int player) {
                   79, 70, 61, 52, 43, 34, 25, 16, 7,
                   80, 71, 62, 53, 44, 35, 26, 17, 8};
 
+    fifth_rank = {76, 67, 58, 49, 40, 31, 22, 13, 04};
+
     CASTLE_THRESHOLD = 100;
 
-    NUM_FEATURES = 15;
+    NUM_FEATURES = 24;
 
     pawn_count = 0;
     pawn_index = 0;
@@ -158,13 +159,28 @@ vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
     features.clear();
     pawn_count = 0;
 
+    // Initialize position cache
+    for (string piece : piece_strings) {
+        piece_pos[piece].first = {};
+        piece_pos[piece].second = {};
+    }
+
     // Individual feature calculations
     material(s);
     king_safety(s);
     pieces_in_hand(s);
     controlled_squares(s);
     castle(s);
-    board_shape(s);
+    gold_ahead_silver_penalty(s);
+    gold_adjacent_rook_penalty(s);
+    boxed_in_bishop_penalty(s);
+    piece_ahead_of_pawns_penalty(s);
+    bishop_head_protected(s);
+    reclining_silver(s);
+    claimed_files(s);
+    adjacent_silvers(s);
+    adjacent_golds(s);
+
 
     return features;
 }
@@ -208,12 +224,14 @@ void ShogiFeatures::material(Shogi& s) {
         int id = gomakindID(piece_type);
         int upgrade = gomakindUP(piece_type);
 
-        // Get string representation and add to appropriate map
+        // Get string representation and add to appropriate count map and piece position cache
         string piece = piece_map[{id, upgrade}];
         if (gomakindChesser(piece_type) == player && id != KING) {
             piece_counts[piece].first++;
+            piece_pos[piece].first.push_back(s.gomaPos[piece_type]);
         } else {
             piece_counts[piece].second++;
+            piece_pos[piece].second.push_back(s.gomaPos[piece_type]);
         }
     }
 
@@ -234,6 +252,40 @@ void ShogiFeatures::material(Shogi& s) {
 
     // Finally add in the total diff in pieces that move same as gold
     features.push_back(gold_count);
+}
+
+vector<int> ShogiFeatures::find_adjacent(int pos) {
+    // Inialize the vector
+    vector<int> adjacent(8, -1);
+
+
+    // Add adacent squares above pos as long as not in topmost row
+    if (pos % 9 != 0) {
+        int top_pos = pos - 1;
+        int top_r_pos = top_pos - 9;
+        int top_l_pos = top_pos + 9;
+
+        adjacent[top] = top_pos;
+        adjacent[topL] = in_bounds(top_l_pos) ? top_l_pos : -1;
+        adjacent[topR] = in_bounds(top_r_pos) ? top_r_pos : -1;
+    }
+
+    // Add adjacent pieces below the king as long as not in bottom most row
+    if (pos % 9 != 8) {
+        int bot_pos = pos + 1;
+        int bot_r_pos = bot_pos - 9;
+        int bot_l_pos = bot_pos + 9;
+
+        adjacent[bot] = bot_pos;
+        adjacent[botL] = in_bounds(bot_l_pos) ? bot_l_pos : -1;
+        adjacent[botR] = in_bounds(bot_r_pos) ? bot_r_pos : -1;
+    }
+
+    // Add the left and right pieces if in bounds
+    adjacent[left] = in_bounds(pos + 9) ? pos + 9 : -1;
+    adjacent[right] = in_bounds(pos - 9) ? pos - 9 : -1;
+
+    return adjacent;
 }
 
 // VISUALLY CHECKED
@@ -257,23 +309,7 @@ void ShogiFeatures::king_safety(Shogi& s) {
     }
 
     // Find adjacent squares
-    vector<int> adjacent;
-
-    // Add adacent pieces above king as long as not in topmost row
-    if (king_pos % 9 != 0) {
-        int king_top = king_pos - 1;
-        adjacent.insert(adjacent.end(), {king_top + 9, king_top, king_top - 9});
-    }
-
-    // Add adjacent pieces below the king as long as not in bottom most row
-    if (king_pos % 9 != 8) {
-        int king_bot = king_pos + 1;
-        adjacent.insert(adjacent.end(), {king_bot + 9, king_bot, king_bot - 9});
-    }
-
-    // Add pieces to left and right if not off edge of board
-    adjacent.push_back(king_pos + 9);
-    adjacent.push_back(king_pos - 9);
+    vector<int> adjacent = find_adjacent(king_pos);
 
     // Initialize our features
     int defenders = 0;               /* Same as 'thickness' */
@@ -283,7 +319,7 @@ void ShogiFeatures::king_safety(Shogi& s) {
     // Loop through adj. sqrs and determine thickness, escape routes, threats
     for (auto& pos : adjacent) {
         // Skip if the position off the left or right edge of board
-        if (0 <= pos and pos <= 80) {
+        if (pos != -1) {
             // Defenders
             if (s.boardChesser[pos] == player)
                 defenders++;
@@ -301,7 +337,7 @@ void ShogiFeatures::king_safety(Shogi& s) {
     // Add to our feature vector
     features.push_back(defenders);
     features.push_back(escape_routes);
-    features.push_back(threats);
+    features.push_back(-1 * threats);
     /* if (print) { */
     /*     cout << "Defenders: " << defenders << endl; */
     /*     cout << "Escape: " << escape_routes << endl; */
@@ -394,7 +430,7 @@ void ShogiFeatures::controlled_squares(Shogi& s) {
     }
 
     // Add results to the feature vector
-    features.push_back(vulnerable);
+    features.push_back(-1 * vulnerable);
     features.push_back(attacking);
 
     /* if (print and (attacking > 0 or vulnerable > 0)) { */
@@ -495,5 +531,232 @@ void ShogiFeatures::board_shape(Shogi& s) {
     // Not implemented yet, see features.py to see shapes
     return;
 }
+
+// Penalty features for bad shape
+void ShogiFeatures::gold_ahead_silver_penalty(Shogi& s) {
+
+    // Check each of the player's silver pieces
+    int count = 0;
+    for (int pos : piece_pos["s"].first) {
+
+        // Get piece above the silver
+        vector<int> adjacent = find_adjacent(pos);
+        int head_pos = adjacent[top];
+
+        if (head_pos != -1) {
+            int head_kind = s.gomaKind[s.board[head_pos]];
+            int id = gomakindID(head_kind);
+
+            if (id == GOLD and s.boardChesser[head_pos] == player) {
+                count += 1;
+            }
+        }
+    }
+
+    features.push_back(-1 * count);
+}
+
+void ShogiFeatures::gold_adjacent_rook_penalty(Shogi& s) {
+
+    // Also check for promoted rooks
+    vector<int> all_rooks = piece_pos["r"].first;
+    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
+
+    int count = 0;
+    for (int pos : all_rooks) {
+
+      vector<int> adj = find_adjacent(pos);
+
+      int left_g = (adj[left] != -1 and s.boardChesser[adj[left]] == player and
+              gomakindID(s.gomaKind[s.board[adj[left]]]) == GOLD) ? 1 : 0;
+      int right_g = (adj[right] != -1 and s.boardChesser[adj[right]] == player and
+              gomakindID(s.gomaKind[s.board[adj[right]]]) == GOLD) ? 1 : 0;
+      int bot_g = (adj[bot] != -1 and s.boardChesser[adj[bot]] == player and
+              gomakindID(s.gomaKind[s.board[adj[bot]]]) == GOLD) ? 1 : 0;
+      int top_g = (adj[top] != -1 and s.boardChesser[adj[top]] == player and
+              gomakindID(s.gomaKind[s.board[adj[top]]]) == GOLD) ? 1 : 0;
+
+      count += left_g + right_g + bot_g + top_g;
+    }
+
+    features.push_back(-1 * count);
+}
+
+void ShogiFeatures::boxed_in_bishop_penalty(Shogi& s) {
+
+    // Also check for promoted rooks
+    vector<int> all_bishops = piece_pos["b"].first;
+    all_bishops.insert(all_bishops.end(), piece_pos["+b"].first.begin(), piece_pos["+b"].first.end());
+
+    int boxed_corners = 0;
+    for (int pos : all_bishops) {
+
+        vector<int> adj = find_adjacent(pos);
+        int top_l_corner = (adj[topL] != -1 and s.board[adj[topL]] != -1 and
+                s.boardChesser[adj[topL]] == player) ? 1 : 0;
+        int top_r_corner = (adj[topR] != -1 and s.board[adj[topR]] != -1 and
+                s.boardChesser[adj[topR]] == player) ? 1 : 0;
+        int bot_l_corner = (adj[botL] != -1 and s.board[adj[botL]] != -1 and
+                s.boardChesser[adj[botL]] == player) ? 1 : 0;
+        int bot_r_corner = (adj[botR] != -1 and s.board[adj[botR]] != -1 and
+                s.boardChesser[adj[botR]] == player) ? 1 : 0;
+
+        boxed_corners = top_l_corner + top_r_corner + bot_l_corner + bot_r_corner;
+    }
+
+    features.push_back(-1 * boxed_corners);
+}
+
+void ShogiFeatures::piece_ahead_of_pawns_penalty(Shogi& s) {
+    vector<int> pawns = piece_pos["p"].first;
+
+    int ahead_of_pawn_count = 0;
+    for (int pos : pawns) {
+        vector<int> adj = find_adjacent(pos);
+
+        // As long as it is not a silver since reclining is good
+        if (adj[top] != -1 and s.boardChesser[adj[top]] == player
+                and gomakindID(s.gomaKind[s.board[adj[top]]]) != SILVER) {
+            ahead_of_pawn_count += 1;
+        }
+    }
+
+    features.push_back(-1 * ahead_of_pawn_count);
+}
+
+// Features for GOOD shape
+void ShogiFeatures::bishop_head_protected(Shogi& s) {
+    vector<int> bishops = piece_pos["b"].first;
+
+    int heads_protected = 0;
+    for (int pos : bishops) {
+        vector<int> adj = find_adjacent(pos);
+
+        if (adj[top] != -1) {
+            // Check if head is being defended
+            if (s.boardFixedAttacking[player][pos].size()) {
+                heads_protected += 1;
+            } else if (s.boardFlowAttacking[player][pos].size()){
+                heads_protected += 1;
+            }
+        }
+    }
+
+    features.push_back(heads_protected);
+}
+
+void ShogiFeatures::reclining_silver(Shogi& s) {
+    vector<int> silvers = piece_pos["s"].first;
+
+    int reclining = 0;
+    for (int pos : silvers) {
+        vector<int> adj = find_adjacent(pos);
+
+        int pawn_right = (adj[right] != -1 and s.boardChesser[adj[right]] == player and
+                gomakindID(s.gomaKind[s.board[adj[right]]]) == PAWN) ? 1 : 0;
+        int pawn_left = (adj[left] != -1 and s.boardChesser[adj[left]] == player and
+                gomakindID(s.gomaKind[s.board[adj[left]]]) == PAWN) ? 1 : 0;
+        int pawn_bot = (adj[bot] != -1 and s.boardChesser[adj[bot]] == player and
+                gomakindID(s.gomaKind[s.board[adj[bot]]]) == PAWN) ? 1 : 0;
+
+        // Count both orientations fo the chair shape
+        if (pawn_bot and pawn_right) {
+            reclining += 1;
+        } else if (pawn_bot and pawn_left) {
+            reclining += 1;
+        }
+    }
+
+    features.push_back(reclining);
+}
+
+void ShogiFeatures::claimed_files(Shogi& s) {
+    vector<int> pawns = piece_pos["p"].first;
+
+    int claimed = 0;
+    for (int pos : fifth_rank) {
+        int piece = s.board[pos];
+        if (piece == -1) continue; /* skip if empty */
+
+        // Check if piece on fifth rank is current player's pawn
+        if (s.boardChesser[pos] == player and gomakindID(s.gomaKind[piece]) == PAWN) {
+
+            // Ensure that the square is defended
+            if (s.boardFixedAttacking[player][pos].size() or s.boardFlowAttacking[player][pos].size()) {
+                claimed++;
+            }
+        }
+    }
+
+    features.push_back(claimed);
+}
+
+int ShogiFeatures::count_adj_pairs(string piece_type, Shogi& s) {
+    vector<int> pieces = piece_pos[piece_type].first;
+
+    // Map to insure not coutned twice
+    map<int, int> seen;
+    int adj_pair = 0;
+    for (int pos : pieces) {
+
+        // Skip if we already counted this position as adjacent to another silver
+        if (seen.count(pos)) continue;
+
+        vector<int> adj = find_adjacent(pos);
+
+        int piece_left = (adj[left] != -1 and s.boardChesser[adj[left]] == player and
+                gomakindID(s.gomaKind[adj[left]]) == SILVER) ? 1 : 0;
+        int piece_right = (adj[right] != -1 and s.boardChesser[adj[right]] == player and
+                gomakindID(s.gomaKind[adj[right]]) == SILVER) ? 1 : 0;
+
+        if (piece_left) {
+            adj_pair += 1;
+            seen[adj[left]] = 1;
+        } else if (piece_right) {
+            adj_pair += 1;
+            seen[adj[right]] = 1;
+        }
+    }
+
+    return adj_pair;
+}
+
+void ShogiFeatures::adjacent_silvers(Shogi& s) {
+    features.push_back(count_adj_pairs("s", s));
+}
+
+void ShogiFeatures::adjacent_golds(Shogi& s) {
+    features.push_back(count_adj_pairs("g", s));
+}
+
+void ShogiFeatures::rook_attack_king_file(Shogi& s) {
+    return;
+}
+
+void ShogiFeatures::rook_attack_king_adj_file(Shogi& s) {
+    return;
+}
+void ShogiFeatures::rook_attack_king_adj_file_9821(Shogi& s) {
+    return;
+}
+
+void ShogiFeatures::rook_open_semi_open_file(Shogi& s) {
+    vector<int> all_rooks = piece_pos["r"].first;
+    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
+
+    return;
+}
+
+void ShogiFeatures::bishop_mobility(Shogi& s) {
+    return;
+
+}
+void ShogiFeatures::rook_mobility(Shogi& s) {
+    s.PrintAttackBoard();
+    return;
+
+}
+
+
 
 
