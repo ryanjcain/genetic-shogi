@@ -106,6 +106,7 @@ def grandMasterEval(individual):
     other_weights = gray_bits_to_ints(individual[cutoff:], cfg.BIT_WIDTH_SMALL)
 
     weights = piece_weights + other_weights
+    print(weights)
 
     # Record evaluation time of the individual for logging reports
     start = time.time()
@@ -384,14 +385,24 @@ def main():
 
     # Record the best individual from all N generations
     cfg.log("\n--------------- Best Individual ---------------")
-    for weight in gray_bits_to_ints(hof[0], cfg.BIT_WIDTH_SMALL):
+    cutoff = cfg.NUM_PIECE_TYPES * cfg.BIT_WIDTH_WIDE
+    piece_weights = gray_bits_to_ints(hof[0][0:cutoff], cfg.BIT_WIDTH_WIDE)
+    other_weights = gray_bits_to_ints(hof[0][cutoff:], cfg.BIT_WIDTH_SMALL)
+
+    weights = piece_weights + other_weights
+    for weight in weights:
         cfg.log("{},".format(weight), end=" ")
 
     # Record the Final Population
     cfg.log("\n\n--------------- Final popluation ---------------")
     if pop:
-        for ind in pop:
-            for weight in gray_bits_to_ints(ind, cfg.BIT_WIDTH_SMALL):
+        for individual in pop:
+            cutoff = cfg.NUM_PIECE_TYPES * cfg.BIT_WIDTH_WIDE
+            piece_weights = gray_bits_to_ints(individual[0:cutoff], cfg.BIT_WIDTH_WIDE)
+            other_weights = gray_bits_to_ints(individual[cutoff:], cfg.BIT_WIDTH_SMALL)
+
+            weights = piece_weights + other_weights
+            for weight in weights:
                 cfg.log("{},".format(weight), end=" ")
             cfg.log("\n")
 
