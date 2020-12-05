@@ -44,6 +44,14 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 		Shogi result = s;
 		result.MakeMove(move);
 
+		// Print the board and the feature vector
+		if (DEBUG and !p) {
+			cout << "----------------------------------------" << endl;
+			result.EasyBoardPrint();
+			cout << endl;
+			string curr = player == SENTE ? "Sente" : "Gote";
+			cout << "Player: " << curr << endl;
+		}
 
 		// Key used for the transposition table of {pos, featureVector}
 		vector<unsigned char> result_state = result.SaveGame();
@@ -61,16 +69,13 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 			feature_tt.insert({result_state, fV});
 		}
 
-		// Print the board and the feature vector
 		if (DEBUG and !p) {
-			cout << "----------------------------------------" << endl;
-			result.EasyBoardPrint();
-			cout << endl;
-			cout << "Player: " << player << endl;
 			print_vec(fV);
 			cout << "----------------------------------------" << endl;
+			cout << endl;
 			p = 1;
 		}
+
 
 
     // Initialize score with pawn value and accumulate other features with weights

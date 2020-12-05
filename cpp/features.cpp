@@ -144,7 +144,7 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     CASTLE_THRESHOLD = 100;
 
-    NUM_FEATURES = 24;
+    NUM_FEATURES = 33;
 
     pawn_count = 0;
     pawn_index = 0;
@@ -180,6 +180,13 @@ vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
     claimed_files(s);
     adjacent_silvers(s);
     adjacent_golds(s);
+    bishop_mobility(s);
+    rook_mobility(s);
+    rook_enemy_camp(s);
+    rook_attack_king_file(s);
+    rook_attack_king_adj_file(s);
+    rook_attack_king_adj_file_9821(s);
+    rook_open_semi_open_file(s);
 
 
     return features;
@@ -226,12 +233,14 @@ void ShogiFeatures::material(Shogi& s) {
 
         // Get string representation and add to appropriate count map and piece position cache
         string piece = piece_map[{id, upgrade}];
-        if (gomakindChesser(piece_type) == player && id != KING) {
-            piece_counts[piece].first++;
-            piece_pos[piece].first.push_back(s.gomaPos[piece_type]);
-        } else {
-            piece_counts[piece].second++;
-            piece_pos[piece].second.push_back(s.gomaPos[piece_type]);
+        if (id != KING) {
+            if (gomakindChesser(piece_type) == player) {
+                piece_counts[piece].first++;
+                piece_pos[piece].first.push_back(s.gomaPos[i]);
+            } else {
+                piece_counts[piece].second++;
+                piece_pos[piece].second.push_back(s.gomaPos[i]);
+            }
         }
     }
 
@@ -252,40 +261,6 @@ void ShogiFeatures::material(Shogi& s) {
 
     // Finally add in the total diff in pieces that move same as gold
     features.push_back(gold_count);
-}
-
-vector<int> ShogiFeatures::find_adjacent(int pos) {
-    // Inialize the vector
-    vector<int> adjacent(8, -1);
-
-
-    // Add adacent squares above pos as long as not in topmost row
-    if (pos % 9 != 0) {
-        int top_pos = pos - 1;
-        int top_r_pos = top_pos - 9;
-        int top_l_pos = top_pos + 9;
-
-        adjacent[top] = top_pos;
-        adjacent[topL] = in_bounds(top_l_pos) ? top_l_pos : -1;
-        adjacent[topR] = in_bounds(top_r_pos) ? top_r_pos : -1;
-    }
-
-    // Add adjacent pieces below the king as long as not in bottom most row
-    if (pos % 9 != 8) {
-        int bot_pos = pos + 1;
-        int bot_r_pos = bot_pos - 9;
-        int bot_l_pos = bot_pos + 9;
-
-        adjacent[bot] = bot_pos;
-        adjacent[botL] = in_bounds(bot_l_pos) ? bot_l_pos : -1;
-        adjacent[botR] = in_bounds(bot_r_pos) ? bot_r_pos : -1;
-    }
-
-    // Add the left and right pieces if in bounds
-    adjacent[left] = in_bounds(pos + 9) ? pos + 9 : -1;
-    adjacent[right] = in_bounds(pos - 9) ? pos - 9 : -1;
-
-    return adjacent;
 }
 
 // VISUALLY CHECKED
@@ -338,12 +313,6 @@ void ShogiFeatures::king_safety(Shogi& s) {
     features.push_back(defenders);
     features.push_back(escape_routes);
     features.push_back(-1 * threats);
-    /* if (print) { */
-    /*     cout << "Defenders: " << defenders << endl; */
-    /*     cout << "Escape: " << escape_routes << endl; */
-    /*     cout << "Threats: " << threats << endl; */
-    /* } */
-    /* print = false; */
 }
 
 // VISUALLY CHECKED
@@ -527,11 +496,6 @@ void ShogiFeatures::castle(Shogi& s) {
     /* print = false; */
 }
 
-void ShogiFeatures::board_shape(Shogi& s) {
-    // Not implemented yet, see features.py to see shapes
-    return;
-}
-
 // Penalty features for bad shape
 void ShogiFeatures::gold_ahead_silver_penalty(Shogi& s) {
 
@@ -691,6 +655,156 @@ void ShogiFeatures::claimed_files(Shogi& s) {
     features.push_back(claimed);
 }
 
+void ShogiFeatures::adjacent_silvers(Shogi& s) {
+    features.push_back(count_adj_pairs("s", s));
+}
+
+void ShogiFeatures::adjacent_golds(Shogi& s) {
+    features.push_back(count_adj_pairs("g", s));
+}
+
+void ShogiFeatures::rook_enemy_camp(Shogi& s) {
+    vector<int> all_rooks = piece_pos["r"].first;
+    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
+
+    int count = 0;
+    for (int pos : all_rooks) {
+        int file = posDan(pos);
+        count += (player == SENTE and file < 4) ? 1 : 0;
+        count += (player == GOTE and file > 6) ? 1 : 0;
+    }
+
+    features.push_back(count);
+}
+
+void ShogiFeatures::rook_attack_king_file(Shogi& s) {
+    vector<int> all_rooks = piece_pos["r"].first;
+    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
+    int oppn_king = (player == SENTE) ? s.gomaPos[s.GOTEKINGNUM] : s.gomaPos[s.SENTEKINGNUM];
+
+    int count = 0;
+    for (int pos : all_rooks) {
+        count += posSuji(pos) == posSuji(oppn_king) ? 1 : 0;
+    }
+
+    features.push_back(count);
+}
+
+void ShogiFeatures::rook_attack_king_adj_file(Shogi& s) {
+    vector<int> all_rooks = piece_pos["r"].first;
+    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
+    int oppn_king = (player == SENTE) ? s.gomaPos[s.GOTEKINGNUM] : s.gomaPos[s.SENTEKINGNUM];
+
+    int count = 0;
+    for (int pos : all_rooks) {
+        int diff = posSuji(pos) - posSuji(oppn_king);
+        count += abs(diff) == 1 ? 1 : 0;
+    }
+
+    features.push_back(count);
+}
+
+void ShogiFeatures::rook_attack_king_adj_file_9821(Shogi& s) {
+    vector<int> all_rooks = piece_pos["r"].first;
+    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
+    int oppn_king = (player == SENTE) ? s.gomaPos[s.GOTEKINGNUM] : s.gomaPos[s.SENTEKINGNUM];
+    int king_suji = posSuji(oppn_king);
+
+    int count = 0;
+    for (int pos : all_rooks) {
+        int diff = posSuji(pos) - king_suji;
+
+        // See if king boxed in on left side
+        if (king_suji == 9 or king_suji == 8) {
+            count += king_suji - posSuji(pos) == 1 ? 1 : 0;
+        }
+        // See if king boxed in on the right side
+        else if (king_suji == 2 or king_suji == 1) {
+            count += posSuji(pos) - king_suji == 1 ? 1 : 0;
+        }
+    }
+
+    features.push_back(count);
+}
+
+void ShogiFeatures::rook_open_semi_open_file(Shogi& s) {
+    vector<int> all_rooks = piece_pos["r"].first;
+    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
+
+    int open_count = 0, semi_open = 0, owned = 0;
+    for (int rook : all_rooks) {
+        int on_file = 0;
+        int rook_file = posSuji(rook);
+
+        // See if that file is completely open or has only 1 piece on it
+        for (int dan = 1; dan <= 9; dan++) {
+            int pos = genPos(rook_file, dan);
+            if (s.board[pos] != -1 and pos != rook) {
+                on_file += 1;
+
+                // Keep track if it is player's piece
+                if (s.boardChesser[pos] == player) {
+                    owned += 1;
+                }
+            }
+        }
+
+        open_count += on_file == 0 ? 1 : 0;
+        semi_open += (on_file == 1 and !owned) ? 1 : 0;
+    }
+
+    features.push_back(open_count);
+    features.push_back(semi_open);
+}
+
+void ShogiFeatures::bishop_mobility(Shogi& s) {
+    vector<int> squares = find_flow_moves("b", s);
+    int safe = count_safe_squares(squares, s);
+    features.push_back(safe);
+}
+
+void ShogiFeatures::rook_mobility(Shogi& s) {
+    vector<int> squares = find_flow_moves("r", s);
+    int safe = count_safe_squares(squares, s);
+    features.push_back(safe);
+}
+
+
+/* Helper functions */
+vector<int> ShogiFeatures::find_adjacent(int pos) {
+    // Inialize the vector
+    vector<int> adjacent(8, -1);
+
+
+    // Add adacent squares above pos as long as not in topmost row
+    if (pos % 9 != 0) {
+        int top_pos = pos - 1;
+        int top_r_pos = top_pos - 9;
+        int top_l_pos = top_pos + 9;
+
+        adjacent[top] = top_pos;
+        adjacent[topL] = in_bounds(top_l_pos) ? top_l_pos : -1;
+        adjacent[topR] = in_bounds(top_r_pos) ? top_r_pos : -1;
+    }
+
+    // Add adjacent pieces below the king as long as not in bottom most row
+    if (pos % 9 != 8) {
+        int bot_pos = pos + 1;
+        int bot_r_pos = bot_pos - 9;
+        int bot_l_pos = bot_pos + 9;
+
+        adjacent[bot] = bot_pos;
+        adjacent[botL] = in_bounds(bot_l_pos) ? bot_l_pos : -1;
+        adjacent[botR] = in_bounds(bot_r_pos) ? bot_r_pos : -1;
+    }
+
+    // Add the left and right pieces if in bounds
+    adjacent[left] = in_bounds(pos + 9) ? pos + 9 : -1;
+    adjacent[right] = in_bounds(pos - 9) ? pos - 9 : -1;
+
+    return adjacent;
+}
+
 int ShogiFeatures::count_adj_pairs(string piece_type, Shogi& s) {
     vector<int> pieces = piece_pos[piece_type].first;
 
@@ -721,42 +835,89 @@ int ShogiFeatures::count_adj_pairs(string piece_type, Shogi& s) {
     return adj_pair;
 }
 
-void ShogiFeatures::adjacent_silvers(Shogi& s) {
-    features.push_back(count_adj_pairs("s", s));
+void ShogiFeatures::print_piece_map() {
+    string curr = player == SENTE ? "Sente" : "Gote";
+    string opp = player == SENTE ? "Gote" : "Sente";
+    for (auto& entry : piece_pos) {
+        cout << "--- " << entry.first << " ---" << endl;
+        cout << "     " << curr << ": ";
+        print_vec(entry.second.first);
+        cout << "     " << opp << ": ";
+        print_vec(entry.second.second);
+    }
 }
 
-void ShogiFeatures::adjacent_golds(Shogi& s) {
-    features.push_back(count_adj_pairs("g", s));
+int ShogiFeatures::count_safe_squares(vector<int> squares, Shogi& s)  {
+    int opp = player ^ 1;
+    vector<int> safe = {};
+    for (int pos : squares) {
+        if (!s.boardFixedAttacking[opp][pos].size() and !s.boardFlowAttacking[opp][pos].size()) {
+            safe.push_back(pos);
+        }
+    }
+
+    return safe.size();
 }
 
-void ShogiFeatures::rook_attack_king_file(Shogi& s) {
-    return;
+vector<int> ShogiFeatures::find_flow_moves(string piece_type, Shogi& s) {
+
+    string up_piece = "+" + piece_type;
+    vector<int> pieces = piece_pos[piece_type].first;
+    pieces.insert(pieces.end(), piece_pos[up_piece].first.begin(), piece_pos[up_piece].first.end());
+
+    vector<int> squares = {};
+    for (int pos : pieces) {
+
+        // Attempt at getting rook movement
+        int piece_num = s.board[pos];
+        int gomaKind = s.gomaKind[piece_num];
+
+        // Eid is the id for the kind of movement the piece can make
+        int up = gomakindUP(gomaKind);
+        int eid = gomakindEID(gomaKind);
+        int owner = gomakindChesser(gomaKind);
+		    int danReverse = (owner == SENTE) ? 1 : -1;
+
+        for (int v = 0; v < movingDlength[eid]; v++) {
+            int prePos = pos;
+            int preSuji = posSuji(prePos);
+            int preDan = posDan(prePos);
+
+            // 0 meanns it is a corner move
+            if (movingD[eid][v] == 0) {
+                int newSuji = preSuji + sujiD[eid][v];
+                int newDan = preDan + danD[eid][v] * danReverse;
+                int newPos = genPos(newSuji, newDan);
+                if(newPos == -1 or s.boardChesser[newPos] == owner) continue;
+
+                squares.push_back(newPos);
+            }
+            // 1 means upgraded direction (left, right, up, down) for bishop, (topL, topR, botL, botR) for rook
+            else if (movingD[eid][v] == 1){
+
+                // Move in each direction until fall off the board
+				        int step = 1;
+                bool expanding = true;
+                bool previous_capture = false;
+                while (true) {
+                  int newSuji = preSuji + sujiD[eid][v] * step;
+                  int newDan = preDan + danD[eid][v] * danReverse * step;
+                  int newPos = genPos(newSuji, newDan);
+
+                  // Stop if new position off the board or blocked by friendly piece
+                  if (newPos == -1 or s.boardChesser[newPos] == owner) break;
+
+                  // Add square
+                  squares.push_back(newPos);
+
+                  // Stop advance if there was an enemy piece on that square
+                  if (s.boardChesser[newPos] != -1) break;
+
+                  step++;
+                }
+            }
+        }
+    }
+    return squares;
 }
-
-void ShogiFeatures::rook_attack_king_adj_file(Shogi& s) {
-    return;
-}
-void ShogiFeatures::rook_attack_king_adj_file_9821(Shogi& s) {
-    return;
-}
-
-void ShogiFeatures::rook_open_semi_open_file(Shogi& s) {
-    vector<int> all_rooks = piece_pos["r"].first;
-    all_rooks.insert(all_rooks.end(), piece_pos["+r"].first.begin(), piece_pos["+r"].first.end());
-
-    return;
-}
-
-void ShogiFeatures::bishop_mobility(Shogi& s) {
-    return;
-
-}
-void ShogiFeatures::rook_mobility(Shogi& s) {
-    s.PrintAttackBoard();
-    return;
-
-}
-
-
-
 

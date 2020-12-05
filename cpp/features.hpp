@@ -102,6 +102,8 @@ class ShogiFeatures {
         // Helper Functions
         bool in_bounds(int pos) { return (0 <= pos and pos <= 80); }
         int count_adj_pairs(string piece_type, Shogi& s);
+        vector<int> find_flow_moves(string piece_type, Shogi& s);
+        int count_safe_squares(vector<int> squares, Shogi& s);
 
         vector<int> generate_feature_vec(Shogi s);
 
@@ -126,6 +128,7 @@ class ShogiFeatures {
         void claimed_files(Shogi& s);
         void adjacent_silvers(Shogi& s);
         void adjacent_golds(Shogi& s);
+        void rook_enemy_camp(Shogi& s);
         void rook_attack_king_file(Shogi& s);
         void rook_attack_king_adj_file(Shogi& s);
         void rook_attack_king_adj_file_9821(Shogi& s);
@@ -133,6 +136,34 @@ class ShogiFeatures {
         void bishop_mobility(Shogi& s);
         void rook_mobility(Shogi& s);
 
+        // Used for visual debugging
+        void print_piece_map();
 
+
+        // Used to decide moves, coppied from shogi.cpp because shogi.cpp clobers global namespace
+        int movingD[14][8] = {
+          {0}, {0, 0, 0, 0, 0}, {0, 0}, {1}, {1, 1, 1, 1},
+          {1, 1, 1, 1}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
+          {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
+          {0, 0, 0, 0, 1, 1, 1, 1}, {0, 0, 0, 0, 1, 1, 1, 1}
+        };
+
+        int movingDlength[14] = {
+          1, 5, 2, 1, 4, 4, 8, 6, 6, 6, 6, 6, 8, 8
+        };
+
+        int danD[14][8] = {
+          {-1}, {-1, -1, -1, 1, 1}, {-2, -2}, {-1}, {-1, 0, 1, 0}, {-1, -1, 1, 1},
+          {-1, -1, -1, 1, 1, 1, 0, 0}, {-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1},
+          {-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1}, {-1, -1, -1, 0, 0, 1},
+          {-1, -1, 1, 1, -1, 0, 1, 0}, {-1, 0, 1, 0, -1, -1, 1, 1}
+        };
+
+        int sujiD[14][8] = {
+          {0}, {-1, 0, 1, -1, 1}, {-1, 1}, {0}, {0, -1, 0, 1}, {1, -1, 1, -1},
+          {1, 0, -1, 1, 0, -1, 1, -1}, {1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0},
+          {1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0}, {1, 0, -1, 1, -1, 0},
+          {1, -1, 1, -1, 0, 1, 0, -1}, {0, 1, 0, -1, 1, -1, 1, -1}
+        };
 };
 
