@@ -67,8 +67,8 @@ if EVAL_LANG == "Python":
 elif EVAL_LANG == "C++":
     # Bring in the Cpp library
     CPP_SHOGI = ctypes.CDLL("./cpp/shogilib.so")
-    NUM_FEATURES = 15
-    NUM_PIECE_TYPES = 9
+    NUM_FEATURES = 24
+    NUM_PIECE_TYPES = 8
 
 else:
     print("Unsupported evaluation language: {}".format(cfg.EVAL_LANG))
