@@ -1,12 +1,12 @@
 #include "train.hpp"
 
-#define DEBUG 0
+#define DEBUG 1
 int TEST_POS_START = 0;
-int TEST_POS_END = TEST_POS_START + 5000;
+int TEST_POS_END = TEST_POS_START + 20;
 
-OrganismEvaluator::OrganismEvaluator(string moves_cache_file) : heuristic(SENTE){
+OrganismEvaluator::OrganismEvaluator() : heuristic(SENTE){
 	// Load the cache of legal moves into memory
-	cache.Init(moves_cache_file);
+	cache.Init(LM_CACHE);
 }
 
 
@@ -20,7 +20,7 @@ Shogi OrganismEvaluator::load_game(string board) {
 }
 
 /* Function to return best move based on heuristic synchronously */
-int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
+int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) {
 
 	// Initialize shogi object based on board and best score / move to 0
 	Shogi s = load_game(board);
@@ -96,7 +96,7 @@ int OrganismEvaluator::select_move(string board, int* weights, int& pos) {
 	return best_move;
 }
 
-int OrganismEvaluator::evaluate_synchronous(int* weights, int& pos) {
+int OrganismEvaluator::evaluate_synchronous(vector<int> weights, int& pos) {
 
 	// Loop through all of the training games
 	int correct = 0;
@@ -122,8 +122,7 @@ int OrganismEvaluator::evaluate_synchronous(int* weights, int& pos) {
 	return correct;
 }
 
-int OrganismEvaluator::evaluate_parallel(int* weights, int&pos) {
-
+int OrganismEvaluator::evaluate_parallel(vector<int> weights, int&pos) {
 	// Loop through all of the training games
 	int correct = 0;
 	int positions = 0;
@@ -150,14 +149,15 @@ int OrganismEvaluator::evaluate_parallel(int* weights, int&pos) {
 }
 
 // Globals used in every evaluation (should make const)
-static OrganismEvaluator evaluator(LM_CACHE);
+/* static OrganismEvaluator evaluator(LM_CACHE); */
 
 // Force export of C symbols to avoid C++ name cluttering (Used for python ctypes)
-#ifdef __cplusplus
-extern "C" int evaluate_organism(int* weights)
-#else
-char int evaluate_organism(int* weights)
-#endif
+/* #ifdef __cplusplus */
+/* extern "C" int evaluate_organism(int* weights) */
+/* #else */
+/* char int evaluate_organism(int* weights) */
+/* #endif */
+int OrganismEvaluator::evaluate_organism(vector<int> weights)
 {
 	// Loop through all of the training games
 	int correct = 0;
@@ -166,10 +166,10 @@ char int evaluate_organism(int* weights)
 	// Uncomment for timing during featuresTests
 	auto start = high_resolution_clock::now();
 
-	if (!evaluator.feature_cache_loaded()) {
-		correct = evaluator.evaluate_synchronous(weights, positions);
+	if (!feature_cache_loaded()) {
+		correct = evaluate_synchronous(weights, positions);
 	} else {
-		correct = evaluator.evaluate_parallel(weights, positions);
+		correct = evaluate_parallel(weights, positions);
 	}
 
 	// Uncomment for timing during featuresTests
@@ -180,25 +180,25 @@ char int evaluate_organism(int* weights)
 	// Remember to mark the cache as being full after first execution
 	/* cout << "Evaluated for " << positions << " positions" << endl; */
 
-	if (!evaluator.feature_cache_loaded()) {
-		evaluator.update_tt_status(true);
+	if (!feature_cache_loaded()) {
+		update_tt_status(true);
 	}
 
 	positions = 0;
 
 	// Overall fitness is the square of total number of correct moves
 	return (correct * correct);
-	/* return correct; */
 }
 
 
 int main() {
     // Used if making featuresTests
-    int weights[20] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    vector<int> weights(20, 1);
 
+		OrganismEvaluator evaluator;
     for (int i = 0; i < 5; i++) {
 				cout << "'Generation' " << i << endl;
-        int correct1 = evaluate_organism(weights);
+        int correct1 = evaluator.evaluate_organism(weights);
         cout << "Guessed: " << correct1 << endl;
         /* cout << "Hits: " << hits << endl; */
         /* hits = 0; */
