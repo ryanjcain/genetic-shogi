@@ -14,12 +14,13 @@ idna==2.9
 incremental==17.5.0
 llvmlite==0.32.0
 lxml==4.5.0
-numpy==1.16.6
+numpy==1.19.4
 parsel==1.5.2
 progressbar2==3.50.1
 Protego==0.1.16
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
+pybind11==2.6.1
 pycparser==2.20
 PyDispatcher==2.0.5
 PyHamcrest==1.10.1
