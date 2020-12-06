@@ -37,6 +37,17 @@ def gray_bits_to_ints(individual, width):
     ]
 
 
+def indv_to_weights(individual):
+    # Decode the organism's gray encode bit string to a set of integer weights
+    cutoff = cfg.NUM_PIECE_TYPES * cfg.BIT_WIDTH_WIDE
+    piece_weights = gray_bits_to_ints(individual[0:cutoff], cfg.BIT_WIDTH_WIDE)
+    other_weights = gray_bits_to_ints(individual[cutoff:], cfg.BIT_WIDTH_SMALL)
+
+    weights = piece_weights + other_weights
+
+    return weights
+
+
 # --------------------------- Python implementation of evaluation  -----------------------------
 
 
@@ -100,12 +111,7 @@ def grandMasterEval(individual):
     Evolving Computer Chess Programs' by Eli David, H. Herik, M. Koppel, and N. Netanyahu.
     '''
 
-    # Decode the organism's gray encode bit string to a set of integer weights
-    cutoff = cfg.NUM_PIECE_TYPES * cfg.BIT_WIDTH_WIDE
-    piece_weights = gray_bits_to_ints(individual[0:cutoff], cfg.BIT_WIDTH_WIDE)
-    other_weights = gray_bits_to_ints(individual[cutoff:], cfg.BIT_WIDTH_SMALL)
-
-    weights = piece_weights + other_weights
+    weights = indv_to_weights(individual)
     print(weights)
 
     # Record evaluation time of the individual for logging reports
@@ -353,7 +359,7 @@ def main():
     '''
 
     # Reset log file
-    open("log.txt", "w").close()
+    open(cfg.LOG_FILE, "w").close()
 
     # Print out the pramaters for running this algorithm and save it to the log file
     log_params(console=True)
@@ -378,30 +384,24 @@ def main():
     hrs = int(end // 3600 % 24)
     mins = int(end // 60 % 60)
     secs = int(end % 60)
-    cfg.log("\nFinished evolution, look at log.txt for results.", console=True)
+    cfg.log("\nFinished evolution, look at {} for results.".format(
+        cfg.LOG_FILE),
+            console=True)
 
     cfg.log("\nEvolution took [{}:{}:{}]s".format(hrs, mins, secs),
             console=False)
 
     # Record the best individual from all N generations
     cfg.log("\n--------------- Best Individual ---------------")
-    cutoff = cfg.NUM_PIECE_TYPES * cfg.BIT_WIDTH_WIDE
-    piece_weights = gray_bits_to_ints(hof[0][0:cutoff], cfg.BIT_WIDTH_WIDE)
-    other_weights = gray_bits_to_ints(hof[0][cutoff:], cfg.BIT_WIDTH_SMALL)
-
-    weights = piece_weights + other_weights
-    for weight in weights:
+    best_weights = indv_to_weights(hof[0])
+    for weight in best_weights:
         cfg.log("{},".format(weight), end=" ")
 
     # Record the Final Population
     cfg.log("\n\n--------------- Final popluation ---------------")
     if pop:
         for individual in pop:
-            cutoff = cfg.NUM_PIECE_TYPES * cfg.BIT_WIDTH_WIDE
-            piece_weights = gray_bits_to_ints(individual[0:cutoff], cfg.BIT_WIDTH_WIDE)
-            other_weights = gray_bits_to_ints(individual[cutoff:], cfg.BIT_WIDTH_SMALL)
-
-            weights = piece_weights + other_weights
+            weights = indv_to_weights(individual)
             for weight in weights:
                 cfg.log("{},".format(weight), end=" ")
             cfg.log("\n")

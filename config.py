@@ -23,6 +23,8 @@ CXPB = 0.75
 MUTPB = 0.005
 N_GEN = 200  # 200 (gens used in GA chess paper)
 
+LOG_FILE = "results.txt"
+
 ############################# LIBRARIES, CACHING, LOGGING ############################
 #############################        DO NOT CHANGE        ############################
 
@@ -43,7 +45,7 @@ def load_obj(name):
 
 def log(message, console=False, end="\n"):
     if not console:
-        with open("log.txt", "a") as f:
+        with open(LOG_FILE, "a") as f:
             f.write(message)
             f.write(end)
     else:
