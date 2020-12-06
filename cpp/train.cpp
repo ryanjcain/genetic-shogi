@@ -2,7 +2,7 @@
 
 #define DEBUG 0
 int TEST_POS_START = 0;
-int TEST_POS_END = TEST_POS_START + 20;
+int TEST_POS_END = TEST_POS_START + 5000;
 
 OrganismEvaluator::OrganismEvaluator() : heuristic(SENTE){
 	// Load the cache of legal moves into memory

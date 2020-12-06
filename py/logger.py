@@ -30,6 +30,7 @@ class gaLogger:
         self.log("Total Features: {}".format(params['num_piece_types'] + params['num_other_features']), console=console)
         self.log("Train positions = {}".format(params['n_train']), console=console)
         self.log("Test  positions = {}".format(params['n_test']), console=console)
+        self.log("Log File = {}".format(params['log_file']), console=console)
 
         self.log("\n---------- GA Parameters ---------", console=console)
         self.log("Population size = {}".format(params['pop_size']), console=console)
