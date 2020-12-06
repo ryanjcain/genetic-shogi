@@ -1,6 +1,6 @@
 #include "train.hpp"
 
-#define DEBUG 1
+#define DEBUG 0
 int TEST_POS_START = 0;
 int TEST_POS_END = TEST_POS_START + 20;
 
