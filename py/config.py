@@ -1,5 +1,5 @@
 import sys
-sys.path.append('./cpp')
+sys.path.append('../cpp')
 
 
 # --------------------------- Genetic Algorithm Framework ---------------------------

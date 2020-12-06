@@ -596,7 +596,7 @@ if __name__ == "__main__":
 
     bar.finish()
 
-    dest = "/json"
+    dest = "../json/"
     if args.type == "pickle":
         dest = "/obj"
 
@@ -651,13 +651,13 @@ if __name__ == "__main__":
             json_tests.append(tests_entry)
 
         # Save them to appropriate files
-        with open('json/' + args.cache + '.json', 'w') as fp:
+        with open(dest + args.cache + '.json', 'w') as fp:
             json.dump(json_cache, fp)
 
-        with open('json/' + args.trainOut + '.json', 'w') as fp:
+        with open(dest + args.trainOut + '.json', 'w') as fp:
             json.dump(json_train, fp)
 
-        with open('json/' + args.testOut + '.json', 'w') as fp:
+        with open(dest + args.testOut + '.json', 'w') as fp:
             json.dump(json_tests, fp)
 
     print("-------------- Statistics from Games ---------------")
