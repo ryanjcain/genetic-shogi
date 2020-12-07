@@ -200,6 +200,8 @@ void ShogiFeatures::init_features() {
     add_feature("AGGRESSION_BALANCE", 0, false);
     add_feature("ENEMY_KING_ATTACKS", 0, false);
     add_feature("ENEMY_KING_ATTACKS_SAFE", 0, false);
+    add_feature("TOTAL_ATTACKING", 0, false);
+    add_feature("DISTANCE_TO_KINGS", 0, false);
 }
 
 void ShogiFeatures::load_features(Shogi& s) {
@@ -228,6 +230,8 @@ void ShogiFeatures::load_features(Shogi& s) {
     blocked_flow(s);
     aggression_balance(s);
     king_attack(s);
+    total_attacking(s);
+    distance_to_kings(s);
 }
 
 vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
@@ -902,7 +906,81 @@ void ShogiFeatures::king_attack(Shogi& s) {
     features["ENEMY_KING_ATTACKS_SAFE"] = num_safe_attacks;
 }
 
+void ShogiFeatures::total_attacking(Shogi& s) {
+    int opponent = (player ^ 1);
+    int player_squares = 0, opponent_squares = 0;
+    for (int pos = 0; pos < 81; pos++) {
+        if (s.boardFixedAttacking[player][pos].size() !=0) {
+            // Count number of pieces attacking that square
+            for (int piece : s.boardFixedAttacking[player][pos]) {
+                int attacker = watchupAttacker(piece);
+                int gomakind = gomakindID(s.gomaKind[attacker]);
+                player_squares += 1;
+            }
+        }
+        if (s.boardFlowAttacking[player][pos].size() !=0) {
+            // Count number of pieces attacking that square
+            for (int piece : s.boardFixedAttacking[player][pos]) {
+                int attacker = watchupAttacker(piece);
+                int gomakind = gomakindID(s.gomaKind[attacker]);
+                player_squares += 1;
+            }
+        }
+        if (s.boardFixedAttacking[opponent][pos].size() !=0) {
+            // Count number of pieces attacking that square
+            for (int piece : s.boardFixedAttacking[player][pos]) {
+                int attacker = watchupAttacker(piece);
+                int gomakind = gomakindID(s.gomaKind[attacker]);
+                opponent_squares += 1;
+            }
+        }
+        if (s.boardFlowAttacking[opponent][pos].size() !=0) {
+            // Count number of pieces attacking that square
+            for (int piece : s.boardFixedAttacking[player][pos]) {
+                int attacker = watchupAttacker(piece);
+                int gomakind = gomakindID(s.gomaKind[attacker]);
+                opponent_squares += 1;
+            }
+        }
+    }
+
+    features["TOTAL_ATTACKING"] = player_squares - opponent_squares;
+}
+
+void ShogiFeatures::distance_to_kings(Shogi& s) {
+    // Measure the general distance each piece has to go to the enemy king
+    int opponent = (player ^ 1);
+    int player_king = (player == SENTE) ?
+                    s.gomaPos[s.SENTEKINGNUM] :
+                    s.gomaPos[s.GOTEKINGNUM];
+    int enemy_king = (player == SENTE) ?
+                    s.gomaPos[s.GOTEKINGNUM] :
+                    s.gomaPos[s.SENTEKINGNUM];
+
+
+    int player_dist = 0, opponent_dist = 0;
+    // Look at how far each piece is away from opponnet king
+    for (int i = 0; i < 40; i++) {
+        if (s.gomaPos[i] == -1) continue;
+        if (gomakindChesser(s.gomaKind[i]) == player) {
+            player_dist += distance(s.gomaPos[i], enemy_king);
+        } else {
+            opponent_dist += distance(s.gomaPos[i], player_king);
+        }
+    }
+
+    features["DISTANCE_TO_KINGS"] = player_dist - opponent_dist;
+}
+
 /* Helper functions */
+int ShogiFeatures::distance(int posA, int posB){
+	int asuji = posSuji(posA);
+	int adan = posDan(posA);
+	int bsuji = posSuji(posB);
+	int bdan = posDan(posB);
+	return ((asuji - adan)*(asuji - adan) + (bsuji - bdan)*(bsuji - bdan)) / 10;
+}
+
 vector<int> ShogiFeatures::find_adjacent(int pos) {
     // Inialize the vector
     vector<int> adjacent(8, -1);

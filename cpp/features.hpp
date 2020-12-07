@@ -121,6 +121,7 @@ class ShogiFeatures {
         int count_adj_pairs(string piece_type, Shogi& s);
         vector<int> find_flow_moves(string piece_type, Shogi& s);
         int count_safe_squares(vector<int> squares, Shogi& s);
+        int distance(int posA, int posB);
 
         vector<int> generate_feature_vec_raw(Shogi s);
         void load_features(Shogi& s);
@@ -158,6 +159,11 @@ class ShogiFeatures {
         void blocked_flow(Shogi& s);
 
         void king_attack(Shogi& s);
+        void distance_to_kings(Shogi& s);
+
+        // General difference in the number of squares each player is attacking. Should give a good
+        // Idea about spacinf of a players pieces.
+        void total_attacking(Shogi& s);
 
         // Used for visual debugging
         void print_piece_map();

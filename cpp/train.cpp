@@ -1,4 +1,5 @@
 #include "train.hpp"
+#include "json.hpp"
 #include <string>
 
 #define DEBUG 0
@@ -154,6 +155,14 @@ int OrganismEvaluator::evaluate_synchronous(vector<int> weights, int& pos) {
 			// Get some stats about the move
 			stats["upgrade_total"] += UPGRADED == moveUpgrade(grandmaster_move) ? 1 : 0;
 			stats["drop_total"] += PLAYING == movePlaying(grandmaster_move) ? 1 : 0;
+			if (PLAYING == movePlaying(grandmaster_move)) {
+				Shogi s = load_game(board);
+  			int player = (s.round % 2);
+				cout << "playwe" << player <<endl;
+				s.EasyBoardPrint();
+				printMove(grandmaster_move);
+
+			}
 		}
 
 		// Compare selection with the choice of the grandmaster
