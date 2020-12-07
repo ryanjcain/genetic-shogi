@@ -10,12 +10,11 @@ MOVES_FILE=$(DATA_DIR)/legal_moves_cache_10000.json
 ### ------------------- Build Configurations -------------------    
 
 # Check system operating system and compiler availability
-COMPILER := $(shell which g++-9)
-UNAME := $(shell uname)
+COMPILER= $(shell which g++-9)
+UNAME= $(shell uname)
 
 # Try to see if g++ version 9 available on system
 ifeq (, $(COMPILER))
-	@echo "Could not find g++ version 9, using default system g++"
 	CXX=g++
 else
 	CXX=g++-9
