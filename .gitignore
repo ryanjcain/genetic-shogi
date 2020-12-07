@@ -33,6 +33,9 @@ backups/
 # Any logfiles for the running of the genetic algorithms
 *.log
 
+# Ignore GA results files
+results*
+
 # Databse of 300,000 games file (too large to store on git)
 data/games_large.txt
 
