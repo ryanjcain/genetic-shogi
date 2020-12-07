@@ -23,11 +23,28 @@ except ModuleNotFoundError as e:
     print("  3. Genetic Shogi module is compiled and built in cpp/ directory.")
     exit(-1)
 
+
+# ---------------------- Global Variables ---------------------- 
+
 # Global organism evaluator from GeneticShogi python package built from C++
 EVALUATOR = gs.OrganismEvaluator()
+EVALUATOR.set_num_eval(cfg['n_train'])
+
+# Global encoder / decoder to store bit caches used in gray bit to int conversion
 ENCODER = GrayEncoder(cfg['bit_width_small'], 
                       cfg['bit_width_wide'], 
-                      split=cfg['num_piece_types'] * cfg['bit_width_wide'])
+                      split=EVALUATOR.get_num_piece_features() *
+                      cfg['bit_width_wide'])
+
+# Add variables computed based no evaluator to config
+piece_types = EVALUATOR.get_num_piece_features()
+other_features = EVALUATOR.get_num_features() - piece_types
+chromosome_len = cfg['bit_width_small'] * other_features + piece_types * cfg['bit_width_wide']
+cfg['num_piece_types'] = piece_types
+cfg['num_other_features'] = other_features
+cfg['chromosome_len'] = chromosome_len
+
+# -------------------------------------------------------------- 
 
 
 def init_progressbar(n_gen):
@@ -72,17 +89,15 @@ def init_ga_toolbox():
     '''
     Initialize the DEAP genetic algorithm
     '''
-    creator.create("FitnessMax", base.Fitness,
-                   weights=(1.0, ))  # Single objective max
-    creator.create("Individual", list,
-                   fitness=creator.FitnessMax)  # Define individual class
+    creator.create("FitnessMax", base.Fitness, weights=(1.0, ))  # Single objective max
+    creator.create("Individual", list, fitness=creator.FitnessMax)  # Define individual class
 
+    # Base toolbox from the DEAP module
     toolbox = base.Toolbox()
 
     # Define how we will initialize an individual and the population
     toolbox.register("attr_bool", random.randint, 0, 1)  # Attribure generator
-    toolbox.register(
-        "individual",
+    toolbox.register( "individual",
         tools.initRepeat,  # Individual initializer
         creator.Individual,
         toolbox.attr_bool,

@@ -144,14 +144,15 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     CASTLE_THRESHOLD = 100;
 
-    NUM_FEATURES = 33;
+    n_features = 33;
+    n_piece_features = 8;
 
     pawn_count = 0;
     pawn_index = 0;
     pawn_value = 100;
 
-    // Initialize the feature vectore
-    features.reserve(NUM_FEATURES);
+    // Initialize the feature vector
+    features.reserve(n_features);
 }
 
 vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
@@ -201,7 +202,7 @@ int ShogiFeatures::evaluate(Shogi s) {
 
     // Initialize score with pawn value and accumulate other features with weights
     int score = fV[0] * pawn_value;
-    for (int i = 1; i < NUM_FEATURES; i++) {
+    for (int i = 1; i < n_features; i++) {
         score += fV[i] * weights[i];
     }
 

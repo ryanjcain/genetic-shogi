@@ -21,9 +21,6 @@ BIT_WIDTH_WIDE = 12  # Paper used 16 for pieces
 LOG_FILE = "results.txt"
 VERBOSE = True  # Print out each organism's weights throughout evolution
 
-NUM_FEATURES = 24
-NUM_PIECE_TYPES = 8
-
 # Save all of the parameters into a list for easy import/exporting
 params = {
     "eval_lang": "C++",
@@ -35,10 +32,6 @@ params = {
     "n_gen": N_GEN,
     "bit_width_small": BIT_WIDTH_SMALL,
     "bit_width_wide": BIT_WIDTH_WIDE,
-    "num_piece_types": NUM_PIECE_TYPES,
-    "num_other_features": NUM_FEATURES,
     "log_file": LOG_FILE,
     "verbose": VERBOSE,
-    "chromosome_len": (BIT_WIDTH_SMALL * NUM_FEATURES) +
-                      (NUM_PIECE_TYPES * BIT_WIDTH_WIDE)
 }
