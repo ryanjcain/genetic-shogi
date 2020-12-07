@@ -136,6 +136,11 @@ class ShogiFeatures {
         void bishop_mobility(Shogi& s);
         void rook_mobility(Shogi& s);
 
+        // Try to help with drops, count the number of pieces that are blocking flow of an enemy
+        void blockage(Shogi& s);
+
+        void king_attack(Shogi& s);
+
         // Used for visual debugging
         void print_piece_map();
 

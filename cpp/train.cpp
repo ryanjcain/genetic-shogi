@@ -208,7 +208,7 @@ int OrganismEvaluator::evaluate_organism(vector<int> weights)
 	if (!tt_full) {
 		correct = evaluate_synchronous(weights, positions);
 	} else {
-		correct = evaluate_synchronous(weights, positions);
+		correct = evaluate_parallel(weights, positions);
 	}
 
 	if (log_stats) {
