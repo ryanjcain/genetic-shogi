@@ -144,7 +144,7 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     CASTLE_THRESHOLD = 100;
 
-    n_features = 33;
+    n_features = 34;
     n_piece_features = 8;
 
     pawn_count = 0;
@@ -189,6 +189,8 @@ vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
     rook_attack_king_adj_file_9821(s);
     rook_open_semi_open_file(s);
 
+    // Work in progress
+    blocked_flow(s);
 
     return features;
 }
@@ -770,6 +772,18 @@ void ShogiFeatures::rook_mobility(Shogi& s) {
     features.push_back(safe);
 }
 
+void ShogiFeatures::blocked_flow(Shogi& s) {
+    // Count how much of the opponent's flow player is blocking, should help with drop pieces
+
+    int opponent = player ^ 1;
+
+    int blocked = 0;
+    for (int pos = 0; pos < 81; pos++) {
+        blocked += s.boardBFlowAttacking[opponent][pos].size();
+    }
+
+    features.push_back(blocked);
+}
 
 /* Helper functions */
 vector<int> ShogiFeatures::find_adjacent(int pos) {

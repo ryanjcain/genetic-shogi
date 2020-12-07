@@ -1,6 +1,6 @@
 #include "train.hpp"
 
-#define DEBUG 0
+#define DEBUG 1
 
 OrganismEvaluator::OrganismEvaluator() : heuristic(SENTE){
 	// Load the cache of legal moves into memory
@@ -74,6 +74,7 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 		// Print the board and the feature vector
 		if (DEBUG and !p) {
 			cout << "----------------------------------------" << endl;
+			s.EasyBoardPrint();
 			result.EasyBoardPrint();
 			cout << endl;
 			string curr = player == SENTE ? "Sente" : "Gote";
@@ -235,7 +236,8 @@ int main() {
     vector<int> weights(20, 1);
 
 		OrganismEvaluator evaluator;
-    for (int i = 0; i < 5; i++) {
+		evaluator.set_num_eval(20);
+    for (int i = 0; i < 1; i++) {
 				cout << "'Generation' " << i << endl;
         int correct1 = evaluator.evaluate_organism(weights);
         cout << "Guessed: " << correct1 << endl;

@@ -115,7 +115,6 @@ class ShogiFeatures {
         void pieces_in_hand(Shogi& s);
         void controlled_squares(Shogi& s);
         void castle(Shogi& s);
-        void board_shape(Shogi& s);
 
         // Penalty features for bad shape
         void gold_ahead_silver_penalty(Shogi& s);
@@ -139,7 +138,7 @@ class ShogiFeatures {
         void rook_mobility(Shogi& s);
 
         // Try to help with drops, count the number of pieces that are blocking flow of an enemy
-        void blockage(Shogi& s);
+        void blocked_flow(Shogi& s);
 
         void king_attack(Shogi& s);
 
