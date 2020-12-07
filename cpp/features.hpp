@@ -152,6 +152,7 @@ class ShogiFeatures {
         void rook_open_semi_open_file(Shogi& s);
         void bishop_mobility(Shogi& s);
         void rook_mobility(Shogi& s);
+        void aggression_balance(Shogi& s);
 
         // Try to help with drops, count the number of pieces that are blocking flow of an enemy
         void blocked_flow(Shogi& s);

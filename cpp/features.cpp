@@ -197,8 +197,10 @@ void ShogiFeatures::init_features() {
     add_feature("BISHOP_MOBILITY", 0, false);
     add_feature("ROOK_MOBILITY", 0, false);
     add_feature("BLOCKED_FLOW", 0, false);
+    add_feature("AGGRESSION_BALANCE", 0, false);
+    add_feature("ENEMY_KING_ATTACKS", 0, false);
+    add_feature("ENEMY_KING_ATTACKS_SAFE", 0, false);
 }
-
 
 void ShogiFeatures::load_features(Shogi& s) {
     // Individual feature calculations
@@ -223,11 +225,10 @@ void ShogiFeatures::load_features(Shogi& s) {
     rook_attack_king_adj_file(s);
     rook_attack_king_adj_file_9821(s);
     rook_open_semi_open_file(s);
-
-    // Work in progress
     blocked_flow(s);
+    aggression_balance(s);
+    king_attack(s);
 }
-
 
 vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
     // Set / Reset feature vector and pawn count to 0
@@ -340,6 +341,7 @@ void ShogiFeatures::king_safety(Shogi& s) {
 
     // Find adjacent squares
     vector<int> adjacent = find_adjacent(king_pos);
+    adjacent.push_back(king_pos);
 
     // Initialize our features
     int defenders = 0;               /* Same as 'thickness' */
@@ -350,9 +352,6 @@ void ShogiFeatures::king_safety(Shogi& s) {
     for (auto& pos : adjacent) {
         // Skip if the position off the left or right edge of board
         if (pos != -1) {
-            // Defenders
-            if (s.boardChesser[pos] == player)
-                defenders++;
 
             // Escape routes
             if (s.board[pos] == -1)
@@ -361,6 +360,9 @@ void ShogiFeatures::king_safety(Shogi& s) {
             // Check both single and multi square moves
             threats += s.boardFixedAttacking[opponent][pos].size();
             threats += s.boardFlowAttacking[opponent][pos].size();
+
+            defenders += s.boardFixedAttacking[player][pos].size();
+            defenders += s.boardFlowAttacking[player][pos].size();
         }
     }
 
@@ -834,6 +836,70 @@ void ShogiFeatures::blocked_flow(Shogi& s) {
     }
 
     features["BLOCKED_FLOW"] = blocked;
+}
+
+
+void ShogiFeatures::aggression_balance(Shogi& s) {
+    double player_agro = 0;
+    double oppn_agro = 0;
+    for (int i = 0; i < 40; i++) {
+        if (s.gomaPos[i] == -1) continue;
+        if (gomakindChesser(s.gomaKind[i]) == player) {
+            player_agro += (10 - posDan(s.gomaPos[i])) / 9;
+        } else {
+            oppn_agro += (10 - posDan(s.gomaPos[i])) / 9;
+        }
+    }
+
+    features["AGGRESSION_BALANCE"] = (int)(player_agro - oppn_agro);
+}
+
+
+void ShogiFeatures::king_attack(Shogi& s) {
+    int opponent = (player ^ 1);
+    int enemy_king = (player == SENTE) ?
+                    s.gomaPos[s.GOTEKINGNUM] :
+                    s.gomaPos[s.SENTEKINGNUM];
+
+    // Look at all of player's pieces attacking opponent's king
+    // Look at safe attacks on the king and on the surrounding squares
+
+    int num_attacks = 0, num_safe_attacks = 0;
+    vector<int> adjacent = find_adjacent(enemy_king);
+    adjacent.push_back(enemy_king);
+
+    // Look enemy king position and surrounding squares
+    for (int pos : adjacent) {
+        // Look at all of the static attacks on that position and see if safe
+        for (int piece : s.boardFixedAttacking[player][enemy_king]) {
+            int attacker = watchupAttacker(piece);
+            int gomakind = s.gomaKind[attacker];
+            int attack_pos = s.gomaPos[attacker];
+
+            // Safe if we have backup, another friendly covering that square
+            int safe = s.boardFixedAttacking[player][attack_pos].size() +
+                       s.boardFlowAttacking[player][attack_pos].size();
+
+            num_safe_attacks = safe ? 1 : 0;
+            num_attacks += 1;
+        }
+        // Look at all of the long range attacks on that position and see if safe
+        for (int piece : s.boardFlowAttacking[player][enemy_king]) {
+            int attacker = watchupAttacker(piece);
+            int gomakind = s.gomaKind[attacker];
+            int attack_pos = s.gomaPos[attacker];
+
+            // Safe if we have backup, another friendly covering that square
+            int safe = s.boardFixedAttacking[player][attack_pos].size() +
+                       s.boardFlowAttacking[player][attack_pos].size();
+
+            num_safe_attacks = safe ? 1 : 0;
+            num_attacks += 1;
+        }
+    }
+
+    features["ENEMY_KING_ATTACKS"] = num_attacks;
+    features["ENEMY_KING_ATTACKS_SAFE"] = num_safe_attacks;
 }
 
 /* Helper functions */
