@@ -1,14 +1,41 @@
 #include "train.hpp"
 
 #define DEBUG 0
-int TEST_POS_START = 0;
-int TEST_POS_END = TEST_POS_START + 5000;
 
 OrganismEvaluator::OrganismEvaluator() : heuristic(SENTE){
 	// Load the cache of legal moves into memory
-	cache.Init(LM_CACHE);
+	cache.Init(lm_cache);
+
+	// Set the default number of evaluations to size of train data
+	n_eval = n_train;
+
+	// Default mode is train mode
+	mode = train_mode;
+	sample = train_data;
+
+	// Keep logging to stats object off by default
+	log_stats = true;
 }
 
+void OrganismEvaluator::set_num_eval(int num_eval) {
+	int bound = mode == train_mode ? n_train : n_test;
+	if (num_eval <= 0) {
+			throw invalid_argument("Positions to evaluate must be non-zero.");
+	}
+	if (num_eval > bound) {
+		string error = "Not enough positions available in " + mode + " data.";
+		throw invalid_argument(error);
+	}
+	n_eval = num_eval;
+}
+
+void OrganismEvaluator::set_mode(string mode_string) {
+	if (mode_string != train_mode and mode_string != test_mode) {
+			throw invalid_argument("Mode not supported");
+	}
+	mode = mode_string;
+	sample = mode == train_mode ? train_data : test_data;
+}
 
 Shogi OrganismEvaluator::load_game(string board) {
 	// Load the hex board representation and initialize the Shogi object
@@ -24,7 +51,7 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 
 	// Initialize shogi object based on board and best score / move to 0
 	Shogi s = load_game(board);
-	int best_score = 0, best_move = 0;
+	int best_score = INT_MIN, best_move = 0;
 
 	// Set the perspective for the heuristic evaluation to current player for the input board
   int player = (s.round % 2);
@@ -96,6 +123,16 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 	return best_move;
 }
 
+void OrganismEvaluator::init_stats() {
+	stats["eval_time_ms"] = 0;
+	stats["total_positions"] = 0;
+	stats["total_correct"] = 0;
+	stats["upgrade_total"] = 0;
+	stats["upgrade_correct"] = 0;
+	stats["drop_total"] = 0;
+	stats["drop_correct"] = 0;
+}
+
 int OrganismEvaluator::evaluate_synchronous(vector<int> weights, int& pos) {
 
 	// Loop through all of the training games
@@ -103,22 +140,33 @@ int OrganismEvaluator::evaluate_synchronous(vector<int> weights, int& pos) {
 	int positions = 0;
 
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
-	/* for (auto& game : TRAIN) { */
-	for (int i = TEST_POS_START; i < TEST_POS_END; i++) {
-		auto game = TRAIN[i];
+	for (int i = 0; i < n_eval; i++) {
+		auto game = sample[i];
 		string board = game.first;
     int grandmaster_move = game.second;
 
 		// Select a move using the given weights and set of shogi features
 		int move = select_move(board, weights, positions);
 
+		if (log_stats) {
+			// Get some stats about the move
+			stats["upgrade_total"] += UPGRADED == moveUpgrade(grandmaster_move) ? 1 : 0;
+			stats["drop_total"] += PLAYING == movePlaying(grandmaster_move) ? 1 : 0;
+		}
+
 		// Compare selection with the choice of the grandmaster
 		if (move == grandmaster_move) {
+			if (log_stats) {
+				stats["upgrade_correct"] += UPGRADED == moveUpgrade(move) ? 1 : 0;
+				stats["drop_correct"] += PLAYING == movePlaying(move) ? 1 : 0;
+			}
 			correct++;
 		}
 	}
 
 	pos += positions;
+
+
 	return correct;
 }
 
@@ -129,9 +177,8 @@ int OrganismEvaluator::evaluate_parallel(vector<int> weights, int&pos) {
 
 	// Compiler directive to make segment parallel, specifies correct/positions as shared
 	#pragma omp parallel for reduction(+:correct,positions)
-	/* for (auto& game : TRAIN) { */
-	for (int i = TEST_POS_START; i < TEST_POS_END; i++) {
-		auto game = TRAIN[i];
+	for (int i = 0; i < n_eval; i++) {
+		auto game = sample[i];
 		string board = game.first;
     int grandmaster_move = game.second;
 
@@ -148,43 +195,35 @@ int OrganismEvaluator::evaluate_parallel(vector<int> weights, int&pos) {
 	return correct;
 }
 
-// Globals used in every evaluation (should make const)
-/* static OrganismEvaluator evaluator(LM_CACHE); */
-
-// Force export of C symbols to avoid C++ name cluttering (Used for python ctypes)
-/* #ifdef __cplusplus */
-/* extern "C" int evaluate_organism(int* weights) */
-/* #else */
-/* char int evaluate_organism(int* weights) */
-/* #endif */
 int OrganismEvaluator::evaluate_organism(vector<int> weights)
 {
 	// Loop through all of the training games
 	int correct = 0;
 	int positions = 0;
+	init_stats();
 
 	// Uncomment for timing during featuresTests
 	auto start = high_resolution_clock::now();
 
-	if (!feature_cache_loaded()) {
+	if (!tt_full) {
 		correct = evaluate_synchronous(weights, positions);
 	} else {
-		correct = evaluate_parallel(weights, positions);
+		correct = evaluate_synchronous(weights, positions);
 	}
 
-	// Uncomment for timing during featuresTests
-	auto stop = high_resolution_clock::now();
-	auto duration = duration_cast<milliseconds>(stop - start);
-	/* cout << "Evaluated H() for " << TRAIN.size() << " games, took " << duration.count() << "ms" << endl; */
-
-	// Remember to mark the cache as being full after first execution
-	/* cout << "Evaluated for " << positions << " positions" << endl; */
-
-	if (!feature_cache_loaded()) {
-		update_tt_status(true);
+	if (log_stats) {
+		// Add some stats about individual evaluation
+		auto stop = high_resolution_clock::now();
+		auto duration = duration_cast<milliseconds>(stop - start);
+		stats["eval_time_ms"] = int(duration.count());
+		stats["total_positions"] = positions;
+		stats["total_correct"] = correct;
 	}
 
-	positions = 0;
+	// After first full run mark the transposition table as full to be used later
+	if (!tt_full) {
+		tt_full = true;
+	}
 
 	// Overall fitness is the square of total number of correct moves
 	return (correct * correct);

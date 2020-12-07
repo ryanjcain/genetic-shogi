@@ -1,5 +1,6 @@
 #include "features.hpp"
 #include <map>
+#include <climits>
 #include <omp.h>
 
 #define STR1(x)  #x
@@ -13,18 +14,36 @@ vector<pair<string, int>> loadGames(string in_file);
 class OrganismEvaluator {
 	public:
 		OrganismEvaluator();
+
 		void evaluate(vector<int> weights, int& correct, int& positions);
 		int evaluate_synchronous(vector<int> weights, int&pos);
 		int evaluate_parallel(vector<int> weights, int&pos);
 		int select_move(string board, vector<int> weights, int& pos);
 		bool feature_cache_loaded() { return tt_full; };
 		void update_tt_status(bool status) { tt_full = status; };
+		void set_num_eval(int num_eval);
 		int evaluate_organism(vector<int> weights);
+		map<string, int> get_evaluation_stats() { return stats; };
+		void set_mode(string mode_string);
+		string get_mode() { return mode; };
+		int get_num_eval() { return n_eval; }
 
 	private:
+		// Number of positions in the train or test data to evaluate
+		int n_eval;
+
+		// Whether to evaluate using train or test data
+		string mode;
+		const string test_mode = "test";
+		const string train_mode = "train";
+		bool log_stats;
+
+
+		map<string, int> stats;
 		MovesCache cache;
 		ShogiFeatures heuristic;
 		Shogi load_game(string board);
+		void init_stats();
 
 		// Add a transpossition table to store feature vector values
 		// NOTE : MAKE THIS AN UNORDERED MAP ASAP!
@@ -55,9 +74,13 @@ class OrganismEvaluator {
 			return result;
 		};
 
-		const string LM_CACHE = STR(MOVES_FILE);
-		const vector<pair<string, int>> TRAIN = loadGames(STR(TRAIN_FILE));
-		const vector<pair<string, int>> TEST = loadGames(STR(TEST_FILE));
+		// Load legal moves cache, train, and test data at compile time
+		const string lm_cache = STR(MOVES_FILE);
+		vector<pair<string, int>> sample;
+		const vector<pair<string, int>> train_data = loadGames(STR(TRAIN_FILE));
+		const vector<pair<string, int>> test_data = loadGames(STR(TEST_FILE));
+		int n_train = train_data.size();
+		int n_test = test_data.size();
 };
 
 /* -------------- Load train, test, moves cache into memory --------------- */
