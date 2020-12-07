@@ -19,7 +19,7 @@ BIT_WIDTH_SMALL = 6
 BIT_WIDTH_WIDE = 12  # Paper used 16 for pieces
 
 LOG_FILE = "results.txt"
-VERBOSE = True  # Print out each organism's weights throughout evolution
+VERBOSE = False  # Print out each organism's weights throughout evolution
 
 # Save all of the parameters into a list for easy import/exporting
 params = {

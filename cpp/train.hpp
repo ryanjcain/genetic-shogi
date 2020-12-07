@@ -27,8 +27,9 @@ class OrganismEvaluator {
 		void set_mode(string mode_string);
 		string get_mode() { return mode; };
 		int get_num_eval() { return n_eval; }
+		vector<string> get_feature_labels() { return heuristic.features_vec_labels(); }
 		int get_num_features() { return heuristic.num_features(); }
-		int get_num_piece_features() { return heuristic.num_piece_features(); };
+		int get_num_major_features() { return heuristic.num_major_features(); };
 
 	private:
 		// Number of positions in the train or test data to evaluate

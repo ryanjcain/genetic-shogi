@@ -33,11 +33,11 @@ EVALUATOR.set_num_eval(cfg['n_train'])
 # Global encoder / decoder to store bit caches used in gray bit to int conversion
 ENCODER = GrayEncoder(cfg['bit_width_small'], 
                       cfg['bit_width_wide'], 
-                      split=EVALUATOR.get_num_piece_features() *
+                      split=EVALUATOR.get_num_major_features() *
                       cfg['bit_width_wide'])
 
 # Add variables computed based no evaluator to config
-piece_types = EVALUATOR.get_num_piece_features()
+piece_types = EVALUATOR.get_num_major_features()
 other_features = EVALUATOR.get_num_features() - piece_types
 chromosome_len = cfg['bit_width_small'] * other_features + piece_types * cfg['bit_width_wide']
 cfg['num_piece_types'] = piece_types
@@ -178,8 +178,9 @@ def main():
     # Record the best individual from all N generations
     logger.log("\n--------------- Best Individual ---------------")
     best_weights = ENCODER.gray_bits_to_weights(hof[0])
-    for weight in best_weights:
-        logger.log("{},".format(weight), end=" ")
+    labels = EVALUATOR.get_feature_labels()
+    for i, label in enumerate(labels):
+        logger.log("{}: {}".format(label, best_weights[i]), end="\n")
 
     # Record the Final Population
     logger.log("\n\n--------------- Final popluation ---------------")

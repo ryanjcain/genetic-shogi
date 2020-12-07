@@ -7,7 +7,7 @@ ShogiFeatures::ShogiFeatures(int player) {
     this->player = player;
 
     // Initialize weights to null if not provided
-    weights = NULL;
+    weights = {};
 
     // Initialize a piece map, convert from int encoding to string
     piece_map = {
@@ -144,28 +144,63 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     CASTLE_THRESHOLD = 100;
 
-    n_features = 34;
-    n_piece_features = 8;
+    n_major_features = 0;
 
     pawn_count = 0;
     pawn_index = 0;
     pawn_value = 100;
 
-    // Initialize the feature vector
-    features.reserve(n_features);
+    // Default initialize the feature vector
+    init_features();
+
+    n_features = features.size();
 }
 
-vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
-    // Set / Reset feature vector and pawn count to 0
-    features.clear();
-    pawn_count = 0;
+void ShogiFeatures::add_feature(string name, int value, bool major) {
+    features[name] = value;
+    n_major_features += major ? 1 : 0;
+    feature_order.push_back(name);
+}
 
-    // Initialize position cache
-    for (string piece : piece_strings) {
-        piece_pos[piece].first = {};
-        piece_pos[piece].second = {};
-    }
+void ShogiFeatures::init_features() {
+    // Initialize majore features (longer bit width) first
+    add_feature("LANCE_VALUE", 0, true);
+    add_feature("KNIGHT_VALUE", 0, true);
+    add_feature("SILVER_VALUE", 0, true);
+    add_feature("BISHOP_VALUE", 0, true);
+    add_feature("ROOK_VALUE", 0, true);
+    add_feature("PROMOTED_BISHOP_VALUE", 0, true);
+    add_feature("PROMOTED_ROOK_VALUE", 0, true);
+    add_feature("GOLD_VALUE", 0, true);
+    add_feature("PLAYER_KING_DEFENDERS", 0, false);
+    add_feature("PLAYER_KING_ESCAPE_ROUTES", 0, false);
+    add_feature("PLAYER_KING_THREAT_PENALTY", 0, false);
+    add_feature("PIECES_IN_HAND", 0, false);
+    add_feature("IN_CAMP_VULNERABILITY_PENALTY", 0, false);
+    add_feature("OUT_CAMP_ATTACK", 0, false);
+    add_feature("CASTLE_FORMATION", 0, false);
+    add_feature("GOLD_AHEAD_SILVER_PENALTY", 0, false);
+    add_feature("GOLD_ADJACENT_ROOK_PENALTY", 0, false);
+    add_feature("BOXED_IN_BISHOP_PENALTY", 0, false);
+    add_feature("PIECE_AHEAD_OF_PAWN_PENALTY", 0, false);
+    add_feature("BISHOP_HEAD_PROTECTED", 0, false);
+    add_feature("RECLINING_SILVER", 0, false);
+    add_feature("CLAIMED_FILES", 0, false);
+    add_feature("ADJACENT_SILVERS", 0, false);
+    add_feature("ADJACENT_GOLDS", 0, false);
+    add_feature("ROOK_ENEMY_CAMP", 0, false);
+    add_feature("ROOK_ATTACK_KING_FILE", 0, false);
+    add_feature("ROOK_ATTACK_KING_ADJ_FILE", 0, false);
+    add_feature("ROOK_ATTACK_KING_ADJ_FILE_9821", 0, false);
+    add_feature("ROOK_OPEN_FILE", 0, false);
+    add_feature("ROOK_SEMI_OPEN_FILE", 0, false);
+    add_feature("BISHOP_MOBILITY", 0, false);
+    add_feature("ROOK_MOBILITY", 0, false);
+    add_feature("BLOCKED_FLOW", 0, false);
+}
 
+
+void ShogiFeatures::load_features(Shogi& s) {
     // Individual feature calculations
     material(s);
     king_safety(s);
@@ -191,8 +226,28 @@ vector<int> ShogiFeatures::generate_feature_vec(Shogi s) {
 
     // Work in progress
     blocked_flow(s);
+}
 
-    return features;
+
+vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
+    // Set / Reset feature vector and pawn count to 0
+    features.clear();
+    pawn_count = 0;
+
+    // Initialize position cache
+    for (string piece : piece_strings) {
+        piece_pos[piece].first = {};
+        piece_pos[piece].second = {};
+    }
+
+    // Calcualte all feature values and save them to internal featues map
+    load_features(s);
+
+    vector<int> feature_vec;
+    for (auto& name : feature_order) {
+        feature_vec.push_back(features[name]);
+    }
+    return feature_vec;
 }
 
 // Read evolution.py to see explenation of these features
@@ -200,11 +255,11 @@ int ShogiFeatures::evaluate(Shogi s) {
     /* Evaluate the shogi position s from the perspective of root player (maximizer) */
 
     // Feature vector
-    vector<int> fV = generate_feature_vec(s);
+    vector<int> fV = generate_feature_vec_raw(s);
 
     // Initialize score with pawn value and accumulate other features with weights
-    int score = fV[0] * pawn_value;
-    for (int i = 1; i < n_features; i++) {
+    int score = pawn_count * pawn_value;
+    for (int i = 0; i < n_features; i++) {
         score += fV[i] * weights[i];
     }
 
@@ -255,15 +310,20 @@ void ShogiFeatures::material(Shogi& s) {
         int diff = piece_counts[piece].first - piece_counts[piece].second;
 
         // Tally up all the pieces that move same as a gold if param specified
-        if (move_as_gold.count(piece)) {
+        if (piece == pawn) {
+            pawn_count = diff;
+        }
+        else if (move_as_gold.count(piece)) {
             gold_count += diff;
         } else {
-            features.push_back(diff);
+            string name = piece_strings_to_full[piece] + "_VALUE";
+            features[name] = diff;
         }
     }
 
     // Finally add in the total diff in pieces that move same as gold
-    features.push_back(gold_count);
+    string name = "GOLD_VALUE";
+    features[name] = gold_count;
 }
 
 // VISUALLY CHECKED
@@ -277,14 +337,6 @@ void ShogiFeatures::king_safety(Shogi& s) {
     int king_pos = (player == SENTE) ?
                     s.gomaPos[s.SENTEKINGNUM] :
                     s.gomaPos[s.GOTEKINGNUM];
-
-    // Could be a terminal position with no king (NOTE : check correctness here!)
-    if (king_pos == -1) {
-        features.push_back(0);
-        features.push_back(0);
-        features.push_back(0);
-        return;
-    }
 
     // Find adjacent squares
     vector<int> adjacent = find_adjacent(king_pos);
@@ -313,9 +365,9 @@ void ShogiFeatures::king_safety(Shogi& s) {
     }
 
     // Add to our feature vector
-    features.push_back(defenders);
-    features.push_back(escape_routes);
-    features.push_back(-1 * threats);
+    features["PLAYER_KING_DEFENDERS"] = defenders;
+    features["PLAYER_KING_ESCAPE_ROUTES"] = escape_routes;
+    features["PLAYER_KING_THREAT_PENALTY"] = -1 * threats;
 }
 
 // VISUALLY CHECKED
@@ -330,7 +382,7 @@ void ShogiFeatures::pieces_in_hand(Shogi& s) {
         piece_cnt += s.gomaTable[I].size();
     }
 
-    features.push_back(piece_cnt);
+    features["PIECES_IN_HAND"] = piece_cnt;
 }
 
 // VISUALLY CHECKED
@@ -402,8 +454,8 @@ void ShogiFeatures::controlled_squares(Shogi& s) {
     }
 
     // Add results to the feature vector
-    features.push_back(-1 * vulnerable);
-    features.push_back(attacking);
+    features["IN_CAMP_VULNERABILITY_PENALTY"] = -1 * vulnerable;
+    features["OUT_CAMP_ATTACK"] = attacking;
 
     /* if (print and (attacking > 0 or vulnerable > 0)) { */
     /*   s.EasyBoardPrint(); */
@@ -494,9 +546,7 @@ void ShogiFeatures::castle(Shogi& s) {
     /* } */
 
     // Add the number of matching pieces in the closest castle formation to feature vector
-    features.push_back(closest_match);
-
-    /* print = false; */
+    features["CASTLE_FORMATION"] =  closest_match;
 }
 
 // Penalty features for bad shape
@@ -520,7 +570,7 @@ void ShogiFeatures::gold_ahead_silver_penalty(Shogi& s) {
         }
     }
 
-    features.push_back(-1 * count);
+    features["GOLD_AHEAD_SILVER_PENALTY"] = -1 * count;
 }
 
 void ShogiFeatures::gold_adjacent_rook_penalty(Shogi& s) {
@@ -546,7 +596,7 @@ void ShogiFeatures::gold_adjacent_rook_penalty(Shogi& s) {
       count += left_g + right_g + bot_g + top_g;
     }
 
-    features.push_back(-1 * count);
+    features["GOLD_ADJACENT_ROOK_PENALTY"] = -1 * count;
 }
 
 void ShogiFeatures::boxed_in_bishop_penalty(Shogi& s) {
@@ -571,7 +621,7 @@ void ShogiFeatures::boxed_in_bishop_penalty(Shogi& s) {
         boxed_corners = top_l_corner + top_r_corner + bot_l_corner + bot_r_corner;
     }
 
-    features.push_back(-1 * boxed_corners);
+    features["BOXED_IN_BISHOP_PENALTY"] = -1 * boxed_corners;
 }
 
 void ShogiFeatures::piece_ahead_of_pawns_penalty(Shogi& s) {
@@ -588,7 +638,7 @@ void ShogiFeatures::piece_ahead_of_pawns_penalty(Shogi& s) {
         }
     }
 
-    features.push_back(-1 * ahead_of_pawn_count);
+    features["PIECE_AHEAD_OF_PAWN_PENALTY"] = -1 * ahead_of_pawn_count;
 }
 
 // Features for GOOD shape
@@ -609,7 +659,7 @@ void ShogiFeatures::bishop_head_protected(Shogi& s) {
         }
     }
 
-    features.push_back(heads_protected);
+    features["BISHOP_HEAD_PROTECTED"] = heads_protected;
 }
 
 void ShogiFeatures::reclining_silver(Shogi& s) {
@@ -634,7 +684,8 @@ void ShogiFeatures::reclining_silver(Shogi& s) {
         }
     }
 
-    features.push_back(reclining);
+
+    features["RECLINING_SILVER"] = reclining;
 }
 
 void ShogiFeatures::claimed_files(Shogi& s) {
@@ -655,15 +706,15 @@ void ShogiFeatures::claimed_files(Shogi& s) {
         }
     }
 
-    features.push_back(claimed);
+    features["CLAIMED_FILES"] = claimed;
 }
 
 void ShogiFeatures::adjacent_silvers(Shogi& s) {
-    features.push_back(count_adj_pairs("s", s));
+    features["ADJACENT_SILVERS"] = count_adj_pairs("s", s);
 }
 
 void ShogiFeatures::adjacent_golds(Shogi& s) {
-    features.push_back(count_adj_pairs("g", s));
+    features["ADJACENT_GOLDS"] = count_adj_pairs("g", s);
 }
 
 void ShogiFeatures::rook_enemy_camp(Shogi& s) {
@@ -677,7 +728,7 @@ void ShogiFeatures::rook_enemy_camp(Shogi& s) {
         count += (player == GOTE and file > 6) ? 1 : 0;
     }
 
-    features.push_back(count);
+    features["ROOK_ENEMY_CAMP"] = count;
 }
 
 void ShogiFeatures::rook_attack_king_file(Shogi& s) {
@@ -690,7 +741,7 @@ void ShogiFeatures::rook_attack_king_file(Shogi& s) {
         count += posSuji(pos) == posSuji(oppn_king) ? 1 : 0;
     }
 
-    features.push_back(count);
+    features["ROOK_ATTACK_KING_FILE"] = count;
 }
 
 void ShogiFeatures::rook_attack_king_adj_file(Shogi& s) {
@@ -704,7 +755,7 @@ void ShogiFeatures::rook_attack_king_adj_file(Shogi& s) {
         count += abs(diff) == 1 ? 1 : 0;
     }
 
-    features.push_back(count);
+    features["ROOK_ATTACK_KING_ADJ_FILE"] = count;
 }
 
 void ShogiFeatures::rook_attack_king_adj_file_9821(Shogi& s) {
@@ -727,7 +778,7 @@ void ShogiFeatures::rook_attack_king_adj_file_9821(Shogi& s) {
         }
     }
 
-    features.push_back(count);
+    features["ROOK_ATTACK_KING_ADJ_FILE_9821"] = count;
 }
 
 void ShogiFeatures::rook_open_semi_open_file(Shogi& s) {
@@ -756,20 +807,20 @@ void ShogiFeatures::rook_open_semi_open_file(Shogi& s) {
         semi_open += (on_file == 1 and !owned) ? 1 : 0;
     }
 
-    features.push_back(open_count);
-    features.push_back(semi_open);
+    features["ROOK_OPEN_FILE"] = open_count;
+    features["ROOK_SEMI_OPEN_FILE"] = semi_open;
 }
 
 void ShogiFeatures::bishop_mobility(Shogi& s) {
     vector<int> squares = find_flow_moves("b", s);
     int safe = count_safe_squares(squares, s);
-    features.push_back(safe);
+    features["BISHOP_MOBILITY"] = safe;
 }
 
 void ShogiFeatures::rook_mobility(Shogi& s) {
     vector<int> squares = find_flow_moves("r", s);
     int safe = count_safe_squares(squares, s);
-    features.push_back(safe);
+    features["ROOK_MOBILITY"] = safe;
 }
 
 void ShogiFeatures::blocked_flow(Shogi& s) {
@@ -782,7 +833,7 @@ void ShogiFeatures::blocked_flow(Shogi& s) {
         blocked += s.boardBFlowAttacking[opponent][pos].size();
     }
 
-    features.push_back(blocked);
+    features["BLOCKED_FLOW"] = blocked;
 }
 
 /* Helper functions */

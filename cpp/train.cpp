@@ -1,6 +1,7 @@
 #include "train.hpp"
+#include <string>
 
-#define DEBUG 1
+#define DEBUG 0
 
 OrganismEvaluator::OrganismEvaluator() : heuristic(SENTE){
 	// Load the cache of legal moves into memory
@@ -93,7 +94,7 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 			result.FetchMove(1);
 
 			// First time seeing game state, add {pos, featureVector} to transposition table
-			fV = heuristic.feature_vec(result);
+			fV = heuristic.feature_vec_raw(result);
 			feature_tt.insert({result_state, fV});
 		}
 
@@ -107,8 +108,8 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 
 
     // Initialize score with pawn value and accumulate other features with weights
-    int score = fV[0] * heuristic.getPawnValue();
-    for (int i = 1; i < heuristic.num_features(); i++) {
+    int score = heuristic.getPawnCount() * heuristic.getPawnValue();
+    for (int i = 0; i < heuristic.num_features(); i++) {
         score += fV[i] * weights[i];
     }
 
@@ -196,8 +197,16 @@ int OrganismEvaluator::evaluate_parallel(vector<int> weights, int&pos) {
 	return correct;
 }
 
-int OrganismEvaluator::evaluate_organism(vector<int> weights)
-{
+int OrganismEvaluator::evaluate_organism(vector<int> weights) {
+
+	// Error check incase something invalid thrown from python (-1 bc now weight for pawn)
+	if (weights.size() != heuristic.num_features()) {
+		string error = "Expected " + to_string(heuristic.num_features()) + " weights but " \
+									 "passed " + to_string(weights.size());
+
+		throw invalid_argument(error);
+	}
+
 	// Loop through all of the training games
 	int correct = 0;
 	int positions = 0;

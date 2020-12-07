@@ -17,7 +17,8 @@ PYBIND11_MODULE(GeneticShogi, m) {
         .def("set_num_eval", &OrganismEvaluator::set_num_eval)
         .def("get_num_eval", &OrganismEvaluator::get_num_eval)
         .def("get_num_features", &OrganismEvaluator::get_num_features)
-        .def("get_num_piece_features", &OrganismEvaluator::get_num_piece_features)
+        .def("get_feature_labels", &OrganismEvaluator::get_feature_labels)
+        .def("get_num_major_features", &OrganismEvaluator::get_num_major_features)
         .def("evaluate_organism", &OrganismEvaluator::evaluate_organism)
         .def("get_evaluation_stats", &OrganismEvaluator::get_evaluation_stats);
 }

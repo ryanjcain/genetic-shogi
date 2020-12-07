@@ -15,7 +15,7 @@ class ShogiFeatures {
 
         ShogiFeatures(int player);
         /* ShogiFeatures() { this->weights = NULL; NUM_FEATURES = 20; }; */
-        ShogiFeatures(int player, int* weights) : ShogiFeatures(player) { this->weights = weights; };
+        ShogiFeatures(int player, vector<int> weights) : ShogiFeatures(player) { this->weights = weights; };
         /* ShogiFeatures(string cache_file); */
         vector<int> gote_camp;
         vector<int> sente_camp;
@@ -33,12 +33,13 @@ class ShogiFeatures {
 
         // Multiple methods for evaluate depending on use in training or search
         int evaluate(Shogi s);
-        vector<int> feature_vec(Shogi s) { return this->generate_feature_vec(s); };
+        vector<int> feature_vec_raw(Shogi s) { return this->generate_feature_vec_raw(s); };
+        vector<string> features_vec_labels() { return feature_order; }
         /* int evaluate(Shogi s, int* test_weights, int root_player, \ */
         /*     map<vector<unsigned char>, vector<int>>& tt, int& hits); */
         // int evaluate(Shogi s, vector<int>& weights, int root_player);
         int num_features() { return n_features; }
-        int num_piece_features() { return n_piece_features; }
+        int num_major_features() { return n_major_features; }
         int getPawnCount() { return pawn_count; }
         int getPawnValue() { return pawn_value; }
         int getPlayer() { return player; }
@@ -48,17 +49,31 @@ class ShogiFeatures {
     private:
         int print;
         int player;
-        int* weights;
-        int n_piece_features;
+        vector<int> weights;
+        int n_major_features;
         int n_features;
         int pawn_index;
         int pawn_count;
         int pawn_value;
-        vector<int> features;
+
+        void init_features();
+        map<string, int> features;
+
+        // Keep track of the names and indexes of features in the feature vector
+        // Major determines if it is a major feature and deserves larger bit width
+        void add_feature(string name, int value, bool major);
+
+        // Preserve the order of initialization as it is used later to split major and minor bit widths
+        vector<string> feature_order;
 
 
+        string pawn = "p";
         vector<string> piece_strings = {"p", "l", "n", "s", "b", "r", "+b", "+r", "g",
             "+p", "+l", "+n", "+s"};
+        map<string, string> piece_strings_to_full = {{"p", "PAWN"}, {"l", "LANCE"}, {"n", "KNIGHT"},
+            {"s", "SILVER"}, {"b", "BISHOP"}, {"r", "ROOK"}, {"+b", "PROMOTED_BISHOP"}, {"+r", "PROMOTED_ROOK"},
+            {"g", "GOLD"}, {"+p", "PROMOTED_PAWN"}, {"+l", "PROMOTED_LANCE"}, {"+n", "PROMOTED_KNIGHT"},
+            {"+s", "PROMOTED_SILVER"}};
 
         // Cache the position(s) [0-81] of each kind of piece on the board since used many times in board shape feature
         // Key is a piece type string (as in piece_strings above), value is a pair of vectors
@@ -107,7 +122,8 @@ class ShogiFeatures {
         vector<int> find_flow_moves(string piece_type, Shogi& s);
         int count_safe_squares(vector<int> squares, Shogi& s);
 
-        vector<int> generate_feature_vec(Shogi s);
+        vector<int> generate_feature_vec_raw(Shogi s);
+        void load_features(Shogi& s);
 
         // Feature functions
         void material(Shogi& s);
