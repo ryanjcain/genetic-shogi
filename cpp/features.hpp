@@ -60,17 +60,19 @@ class ShogiFeatures {
 
         bool group_promotions;
         bool in_hand_bonus;
-        bool link_promotions_and_in_hand;
+        bool link_material;
 
         void init_features();
         map<string, int> features;
 
         // Keep track of the names and indexes of features in the feature vector
-        // Major determines if it is a major feature and deserves larger bit width
-        void add_feature(string name, int value, bool major);
+        // Major determines if it is a major feature and deserves larger bit width or if it is linked to
+        // another weight (only really the case for piece features)
+        void add_feature(string name, bool major, string link);
 
         // Preserve the order of initialization as it is used later to split major and minor bit widths
         vector<string> feature_order;
+        map<string, int> feature_links;
 
 
         string pawn = "p";

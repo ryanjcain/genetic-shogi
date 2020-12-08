@@ -98,9 +98,13 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 			feature_tt.insert({result_state, fV});
 		}
 
+    // Initialize score with pawn value and accumulate other features with weights
+		int score = heuristic.evaluate_feature_vec(fV, weights);
+
 		// Print the raw feature vector in debug mode
 		if (DEBUG) {
 			print_vec(fV);
+			cout << "Score: " << score << endl;
 			cout << "----------------------------------------" << endl;
 			cout << endl;
 
@@ -109,8 +113,6 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 		}
 
 
-    // Initialize score with pawn value and accumulate other features with weights
-		int score = heuristic.evaluate_feature_vec(fV, weights);
 
 		// Update highest score
 		if (score > best_score) {
@@ -263,10 +265,10 @@ int OrganismEvaluator::evaluate_organism(vector<int> weights) {
 
 int main() {
     // Used if making featuresTests
-    vector<int> weights(20, 1);
 
 		OrganismEvaluator evaluator;
 		evaluator.set_num_eval(20);
+    vector<int> weights(evaluator.get_num_features(), 1);
     for (int i = 0; i < 1; i++) {
 				cout << "'Generation' " << i << endl;
         int correct1 = evaluator.evaluate_organism(weights);
