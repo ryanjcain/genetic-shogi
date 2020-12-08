@@ -236,7 +236,6 @@ void ShogiFeatures::load_features(Shogi& s) {
 
 vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
     // Set / Reset feature vector and pawn count to 0
-    features.clear();
     pawn_count = 0;
 
     // Initialize position cache

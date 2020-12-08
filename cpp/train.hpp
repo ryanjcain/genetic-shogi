@@ -1,6 +1,7 @@
 #include "features.hpp"
 #include <map>
 #include <climits>
+#include <algorithm>
 #include <omp.h>
 
 #define STR1(x)  #x
@@ -39,7 +40,10 @@ class OrganismEvaluator {
 		string mode;
 		const string test_mode = "test";
 		const string train_mode = "train";
-		bool log_stats;
+		const string train_drops = "train_drops";
+		vector<string> modes = {test_mode, train_mode, train_drops};
+		bool log;
+		void log_stats(string board, int move, int grandmaster_move);
 
 
 		map<string, int> stats;

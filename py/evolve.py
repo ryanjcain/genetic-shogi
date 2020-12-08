@@ -28,6 +28,7 @@ except ModuleNotFoundError as e:
 
 # Global organism evaluator from GeneticShogi python package built from C++
 EVALUATOR = gs.OrganismEvaluator()
+EVALUATOR.set_mode(cfg['eval_mode'])
 EVALUATOR.set_num_eval(cfg['n_train'])
 
 # Global encoder / decoder to store bit caches used in gray bit to int conversion
@@ -37,10 +38,10 @@ ENCODER = GrayEncoder(cfg['bit_width_small'],
                       cfg['bit_width_wide'])
 
 # Add variables computed based no evaluator to config
-piece_types = EVALUATOR.get_num_major_features()
-other_features = EVALUATOR.get_num_features() - piece_types
-chromosome_len = cfg['bit_width_small'] * other_features + piece_types * cfg['bit_width_wide']
-cfg['num_piece_types'] = piece_types
+major_features = EVALUATOR.get_num_major_features()
+other_features = EVALUATOR.get_num_features() - major_features
+chromosome_len = cfg['bit_width_small'] * other_features + major_features * cfg['bit_width_wide']
+cfg['num_major_features'] = major_features
 cfg['num_other_features'] = other_features
 cfg['chromosome_len'] = chromosome_len
 
@@ -153,13 +154,18 @@ def main():
     # Initalize the ascii progress bar
     bar = init_progressbar(cfg['n_gen'])
 
+
+    # Labels of the features being used
+    labels = EVALUATOR.get_feature_labels()
+    cfg['labels'] = labels
+
     # Instantiate logger for the genetic algorithm and pring out config parameters
     logger = gaLogger(cfg['log_file'])
     logger.log_organism_ga_params(cfg, console=True)
     logger.log_organism_ga_params(cfg, console=False)
 
     # Run the evolutionary algorithm, close multiprocessing pool when completed.
-    print("\n--------------- Beginning Evolution ---------------")
+    print("--------------- Beginning Evolution ---------------")
     start = time.time()
     pop, stats, hof = evolve(toolbox, logger, bar)
 
@@ -178,7 +184,6 @@ def main():
     # Record the best individual from all N generations
     logger.log("\n--------------- Best Individual ---------------")
     best_weights = ENCODER.gray_bits_to_weights(hof[0])
-    labels = EVALUATOR.get_feature_labels()
     for i, label in enumerate(labels):
         logger.log("{}: {}".format(label, best_weights[i]), end="\n")
 
