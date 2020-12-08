@@ -151,6 +151,7 @@ ShogiFeatures::ShogiFeatures(int player) {
     pawn_value = 100;
     group_promotions = false;
     in_hand_bonus = true;
+    link_promotions_and_in_hand = true;
 
     // Default initialize the feature vector
     init_features();
@@ -177,10 +178,10 @@ void ShogiFeatures::init_features() {
         add_feature("GOLD_AND_EQV_VALUE", 0, true);
     } else {
         add_feature("GOLD_VALUE", 0, true);
+        add_feature("PROMOTED_PAWN_BONUS", 0, true);
+        add_feature("PROMOTED_LANCE_BONUS", 0, true);
         add_feature("PROMOTED_KNIGHT_BONUS", 0, true);
         add_feature("PROMOTED_SILVER_BONUS", 0, true);
-        add_feature("PROMOTED_LANCE_BONUS", 0, true);
-        add_feature("PROMOTED_PAWN_BONUS", 0, true);
     }
     add_feature("PROMOTED_BISHOP_BONUS", 0, true);
     add_feature("PROMOTED_ROOK_BONUS", 0, true);
@@ -191,72 +192,72 @@ void ShogiFeatures::init_features() {
         add_feature("LANCE_IN_HAND_BONUS", 0, true);
         add_feature("KNIGHT_IN_HAND_BONUS", 0, true);
         add_feature("SILVER_IN_HAND_BONUS", 0, true);
-        add_feature("GOLD_IN_HAND_BONUS", 0, true);
         add_feature("BISHOP_IN_HAND_BONUS", 0, true);
         add_feature("ROOK_IN_HAND_BONUS", 0, true);
+        add_feature("GOLD_IN_HAND_BONUS", 0, true);
     } else {
         add_feature("PIECES_IN_HAND", 0, false);
     }
 
-    add_feature("PLAYER_KING_DEFENDERS", 0, false);
-    add_feature("PLAYER_KING_ESCAPE_ROUTES", 0, false);
-    add_feature("PLAYER_KING_THREAT_PENALTY", 0, false);
-    add_feature("IN_CAMP_VULNERABILITY_PENALTY", 0, false);
-    add_feature("OUT_CAMP_ATTACK", 0, false);
-    add_feature("CASTLE_FORMATION", 0, false);
-    add_feature("GOLD_AHEAD_SILVER_PENALTY", 0, false);
-    add_feature("GOLD_ADJACENT_ROOK_PENALTY", 0, false);
-    add_feature("BOXED_IN_BISHOP_PENALTY", 0, false);
-    add_feature("PIECE_AHEAD_OF_PAWN_PENALTY", 0, false);
-    add_feature("BISHOP_HEAD_PROTECTED", 0, false);
-    add_feature("RECLINING_SILVER", 0, false);
-    add_feature("CLAIMED_FILES", 0, false);
-    add_feature("ADJACENT_SILVERS", 0, false);
-    add_feature("ADJACENT_GOLDS", 0, false);
-    add_feature("ROOK_ENEMY_CAMP", 0, false);
-    add_feature("ROOK_ATTACK_KING_FILE", 0, false);
-    add_feature("ROOK_ATTACK_KING_ADJ_FILE", 0, false);
-    add_feature("ROOK_ATTACK_KING_ADJ_FILE_9821", 0, false);
-    add_feature("ROOK_OPEN_FILE", 0, false);
-    add_feature("ROOK_SEMI_OPEN_FILE", 0, false);
-    add_feature("BISHOP_MOBILITY", 0, false);
-    add_feature("ROOK_MOBILITY", 0, false);
-    add_feature("BLOCKED_FLOW", 0, false);
-    add_feature("AGGRESSION_BALANCE", 0, false);
-    add_feature("ENEMY_KING_ATTACKS", 0, false);
-    add_feature("ENEMY_KING_ATTACKS_SAFE", 0, false);
-    add_feature("TOTAL_ATTACKING", 0, false);
-    add_feature("DISTANCE_TO_KINGS", 0, false);
+    /* add_feature("PLAYER_KING_DEFENDERS", 0, false); */
+    /* add_feature("PLAYER_KING_ESCAPE_ROUTES", 0, false); */
+    /* add_feature("PLAYER_KING_THREAT_PENALTY", 0, false); */
+    /* add_feature("IN_CAMP_VULNERABILITY_PENALTY", 0, false); */
+    /* add_feature("OUT_CAMP_ATTACK", 0, false); */
+    /* add_feature("CASTLE_FORMATION", 0, false); */
+    /* add_feature("GOLD_AHEAD_SILVER_PENALTY", 0, false); */
+    /* add_feature("GOLD_ADJACENT_ROOK_PENALTY", 0, false); */
+    /* add_feature("BOXED_IN_BISHOP_PENALTY", 0, false); */
+    /* add_feature("PIECE_AHEAD_OF_PAWN_PENALTY", 0, false); */
+    /* add_feature("BISHOP_HEAD_PROTECTED", 0, false); */
+    /* add_feature("RECLINING_SILVER", 0, false); */
+    /* add_feature("CLAIMED_FILES", 0, false); */
+    /* add_feature("ADJACENT_SILVERS", 0, false); */
+    /* add_feature("ADJACENT_GOLDS", 0, false); */
+    /* add_feature("ROOK_ENEMY_CAMP", 0, false); */
+    /* add_feature("ROOK_ATTACK_KING_FILE", 0, false); */
+    /* add_feature("ROOK_ATTACK_KING_ADJ_FILE", 0, false); */
+    /* add_feature("ROOK_ATTACK_KING_ADJ_FILE_9821", 0, false); */
+    /* add_feature("ROOK_OPEN_FILE", 0, false); */
+    /* add_feature("ROOK_SEMI_OPEN_FILE", 0, false); */
+    /* add_feature("BISHOP_MOBILITY", 0, false); */
+    /* add_feature("ROOK_MOBILITY", 0, false); */
+    /* add_feature("BLOCKED_FLOW", 0, false); */
+    /* add_feature("AGGRESSION_BALANCE", 0, false); */
+    /* add_feature("ENEMY_KING_ATTACKS", 0, false); */
+    /* add_feature("ENEMY_KING_ATTACKS_SAFE", 0, false); */
+    /* add_feature("TOTAL_ATTACKING", 0, false); */
+    /* add_feature("DISTANCE_TO_KINGS", 0, false); */
 }
 
 void ShogiFeatures::load_features(Shogi& s) {
     // Individual feature calculations
     material(s);
     material_in_hand(s);
-    king_safety(s);
-    controlled_squares(s);
-    castle(s);
-    gold_ahead_silver_penalty(s);
-    gold_adjacent_rook_penalty(s);
-    boxed_in_bishop_penalty(s);
-    piece_ahead_of_pawns_penalty(s);
-    bishop_head_protected(s);
-    reclining_silver(s);
-    claimed_files(s);
-    adjacent_silvers(s);
-    adjacent_golds(s);
-    bishop_mobility(s);
-    rook_mobility(s);
-    rook_enemy_camp(s);
-    rook_attack_king_file(s);
-    rook_attack_king_adj_file(s);
-    rook_attack_king_adj_file_9821(s);
-    rook_open_semi_open_file(s);
-    blocked_flow(s);
-    aggression_balance(s);
-    king_attack(s);
-    total_attacking(s);
-    distance_to_kings(s);
+    /* king_safety(s); */
+    /* controlled_squares(s); */
+    /* castle(s); */
+    /* gold_ahead_silver_penalty(s); */
+    /* gold_adjacent_rook_penalty(s); */
+    /* boxed_in_bishop_penalty(s); */
+    /* piece_ahead_of_pawns_penalty(s); */
+    /* bishop_head_protected(s); */
+    /* reclining_silver(s); */
+    /* claimed_files(s); */
+    /* adjacent_silvers(s); */
+    /* adjacent_golds(s); */
+    /* bishop_mobility(s); */
+    /* rook_mobility(s); */
+    /* rook_enemy_camp(s); */
+    /* rook_attack_king_file(s); */
+    /* rook_attack_king_adj_file(s); */
+    /* rook_attack_king_adj_file_9821(s); */
+    /* rook_open_semi_open_file(s); */
+    /* blocked_flow(s); */
+    /* aggression_balance(s); */
+    /* king_attack(s); */
+    /* total_attacking(s); */
+    /* distance_to_kings(s); */
 }
 
 vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
@@ -279,20 +280,71 @@ vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
     return feature_vec;
 }
 
+int ShogiFeatures::evaluate_feature_vec(vector<int>& fV, vector<int>& weights) {
+    if (fV.size() > n_features or weights.size() > n_features or fV.size() != weights.size()) {
+        string error = "Expected fV and weights to be size of N features";
+        throw invalid_argument(error);
+    }
+
+    // Initialize score with pawn value and accumulate other features with weights
+    int score = pawn_count * pawn_value;
+    /* for (int i = 0; i < n_features; i++) { */
+    /*     score += fV[i] * weights[i]; */
+    /* } */
+
+
+    // Hard coded right now to link the promoted pieces and in hand weights to regualr piece weights
+    map<string, int> piece_weights;
+    for (int i = 0; i < 5; i++) {
+        piece_weights[piece_strings[i+1]] = weights[i];
+        score += fV[i] * weights[i];
+    }
+
+    // Add gold score
+    piece_weights["g"] = weights[5];
+    score += fV[5] * weights[5];
+
+
+
+    // Add the promoted pawn score
+    int string_index = 1;
+    score += fV[6] * (pawn_value + weights[6]);
+    for (int i = 7; i < 12; i++) {
+        score += fV[i] * (piece_weights[piece_strings[string_index]] + weights[i]);
+        string_index++;
+    }
+
+    // Add the pawn in hand score
+    score += fV[12] * (pawn_value + weights[12]);
+    //Lance in hand
+    score += fV[13] * (piece_weights[piece_strings[1]] + weights[13]);
+    // knight in hand
+    score += fV[14] * (piece_weights[piece_strings[2]] + weights[14]);
+    // silver in hand
+    score += fV[15] * (piece_weights[piece_strings[3]] + weights[15]);
+    // bishop in hand
+    score += fV[16] * (piece_weights[piece_strings[4]] + weights[16]);
+    // rook in hand
+    score += fV[17] * (piece_weights[piece_strings[5]] + weights[17]);
+    // gold in hand
+    //
+    //
+    string_index = 0;
+    for (int i = 13; i < 18; i++) {
+        score += fV[i] * (piece_weights[piece_strings[string_index]]) + weights[i];
+    }
+    score += fV[18] * (piece_weights["g"] + weights[18]);
+
+    return score;
+}
+
 // Read evolution.py to see explenation of these features
 int ShogiFeatures::evaluate(Shogi s) {
     /* Evaluate the shogi position s from the perspective of root player (maximizer) */
 
     // Feature vector
     vector<int> fV = generate_feature_vec_raw(s);
-
-    // Initialize score with pawn value and accumulate other features with weights
-    int score = pawn_count * pawn_value;
-    for (int i = 0; i < n_features; i++) {
-        score += fV[i] * weights[i];
-    }
-
-    return score;
+    return evaluate_feature_vec(fV, weights);
 }
 
 // VISUALLY CHECKED

@@ -35,6 +35,8 @@ class ShogiFeatures {
         int evaluate(Shogi s);
         vector<int> feature_vec_raw(Shogi s) { return this->generate_feature_vec_raw(s); };
         vector<string> features_vec_labels() { return feature_order; }
+        int evaluate_feature_vec(vector<int>& fV, vector<int>& weights);
+
         /* int evaluate(Shogi s, int* test_weights, int root_player, \ */
         /*     map<vector<unsigned char>, vector<int>>& tt, int& hits); */
         // int evaluate(Shogi s, vector<int>& weights, int root_player);
@@ -58,6 +60,7 @@ class ShogiFeatures {
 
         bool group_promotions;
         bool in_hand_bonus;
+        bool link_promotions_and_in_hand;
 
         void init_features();
         map<string, int> features;

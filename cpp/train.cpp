@@ -110,10 +110,7 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 
 
     // Initialize score with pawn value and accumulate other features with weights
-    int score = heuristic.getPawnCount() * heuristic.getPawnValue();
-    for (int i = 0; i < heuristic.num_features(); i++) {
-        score += fV[i] * weights[i];
-    }
+		int score = heuristic.evaluate_feature_vec(fV, weights);
 
 		// Update highest score
 		if (score > best_score) {
