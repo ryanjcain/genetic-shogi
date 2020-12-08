@@ -149,6 +149,8 @@ ShogiFeatures::ShogiFeatures(int player) {
     pawn_count = 0;
     pawn_index = 0;
     pawn_value = 100;
+    group_promotions = false;
+    in_hand_bonus = true;
 
     // Default initialize the feature vector
     init_features();
@@ -163,19 +165,42 @@ void ShogiFeatures::add_feature(string name, int value, bool major) {
 }
 
 void ShogiFeatures::init_features() {
-    // Initialize majore features (longer bit width) first
+    // Initialize major features (longer bit width) first
     add_feature("LANCE_VALUE", 0, true);
     add_feature("KNIGHT_VALUE", 0, true);
     add_feature("SILVER_VALUE", 0, true);
     add_feature("BISHOP_VALUE", 0, true);
     add_feature("ROOK_VALUE", 0, true);
-    add_feature("PROMOTED_BISHOP_VALUE", 0, true);
-    add_feature("PROMOTED_ROOK_VALUE", 0, true);
-    add_feature("GOLD_VALUE", 0, true);
+
+    // Add pieces according to configuration
+    if (group_promotions) {
+        add_feature("GOLD_AND_EQV_VALUE", 0, true);
+    } else {
+        add_feature("GOLD_VALUE", 0, true);
+        add_feature("PROMOTED_KNIGHT_BONUS", 0, true);
+        add_feature("PROMOTED_SILVER_BONUS", 0, true);
+        add_feature("PROMOTED_LANCE_BONUS", 0, true);
+        add_feature("PROMOTED_PAWN_BONUS", 0, true);
+    }
+    add_feature("PROMOTED_BISHOP_BONUS", 0, true);
+    add_feature("PROMOTED_ROOK_BONUS", 0, true);
+
+    // Initialize individual values for pieces in hand based on config
+    if (in_hand_bonus) {
+        add_feature("PAWN_IN_HAND_BONUS", 0, true);
+        add_feature("LANCE_IN_HAND_BONUS", 0, true);
+        add_feature("KNIGHT_IN_HAND_BONUS", 0, true);
+        add_feature("SILVER_IN_HAND_BONUS", 0, true);
+        add_feature("GOLD_IN_HAND_BONUS", 0, true);
+        add_feature("BISHOP_IN_HAND_BONUS", 0, true);
+        add_feature("ROOK_IN_HAND_BONUS", 0, true);
+    } else {
+        add_feature("PIECES_IN_HAND", 0, false);
+    }
+
     add_feature("PLAYER_KING_DEFENDERS", 0, false);
     add_feature("PLAYER_KING_ESCAPE_ROUTES", 0, false);
     add_feature("PLAYER_KING_THREAT_PENALTY", 0, false);
-    add_feature("PIECES_IN_HAND", 0, false);
     add_feature("IN_CAMP_VULNERABILITY_PENALTY", 0, false);
     add_feature("OUT_CAMP_ATTACK", 0, false);
     add_feature("CASTLE_FORMATION", 0, false);
@@ -207,8 +232,8 @@ void ShogiFeatures::init_features() {
 void ShogiFeatures::load_features(Shogi& s) {
     // Individual feature calculations
     material(s);
+    material_in_hand(s);
     king_safety(s);
-    pieces_in_hand(s);
     controlled_squares(s);
     castle(s);
     gold_ahead_silver_penalty(s);
@@ -317,17 +342,23 @@ void ShogiFeatures::material(Shogi& s) {
         if (piece == pawn) {
             pawn_count = diff;
         }
-        else if (move_as_gold.count(piece)) {
+        else if (group_promotions and move_as_gold.count(piece)) {
             gold_count += diff;
         } else {
-            string name = piece_strings_to_full[piece] + "_VALUE";
+            /* string name = piece_strings_to_full[piece] + "_VALUE"; */
+            string name = piece_strings_to_full[piece];
+            string type = name.substr(0, name.find("_"));
+            name += type == "PROMOTED" ? "_BONUS" : "_VALUE";
+
             features[name] = diff;
         }
     }
 
-    // Finally add in the total diff in pieces that move same as gold
-    string name = "GOLD_VALUE";
-    features[name] = gold_count;
+    // Add diff in gold pieces if we are grouping
+    if (group_promotions) {
+        string name = "GOLD_AND_EQV_VALUE";
+        features[name] = gold_count;
+    }
 }
 
 // VISUALLY CHECKED
@@ -375,8 +406,39 @@ void ShogiFeatures::king_safety(Shogi& s) {
     features["PLAYER_KING_THREAT_PENALTY"] = -1 * threats;
 }
 
+void ShogiFeatures::material_in_hand(Shogi& s) {
+
+    if (!in_hand_bonus) {
+        total_pieces_in_hand(s);
+        return;
+    }
+
+    int opponent = player ^ 1;
+
+    vector<int> player_hand;
+    vector<int> oppnent_hand;
+    player_hand.reserve(in_hand_order.size());
+    oppnent_hand.reserve(in_hand_order.size());
+
+
+    // 0-7 are Sente piece in hand queues, 8-15 are Gote
+    for (int i = 0; i < 8; i++) {
+        int I = i + player * 8;
+        player_hand[i] = s.gomaTable[I].size();
+    }
+    for (int i = 0; i < 8; i++) {
+        int I = i + opponent * 8;
+        oppnent_hand[i] = s.gomaTable[I].size();
+    }
+
+    for (size_t i = 0; i < in_hand_order.size(); i++) {
+        string name = piece_strings_to_full[in_hand_order[i]] + "_IN_HAND_BONUS";
+        features[name] = player_hand[i] - oppnent_hand[i];
+    }
+}
+
 // VISUALLY CHECKED
-void ShogiFeatures::pieces_in_hand(Shogi& s) {
+void ShogiFeatures::total_pieces_in_hand(Shogi& s) {
 
     // int player = (s.round & 1);
     int piece_cnt = 0;

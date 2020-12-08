@@ -56,6 +56,9 @@ class ShogiFeatures {
         int pawn_count;
         int pawn_value;
 
+        bool group_promotions;
+        bool in_hand_bonus;
+
         void init_features();
         map<string, int> features;
 
@@ -74,6 +77,8 @@ class ShogiFeatures {
             {"s", "SILVER"}, {"b", "BISHOP"}, {"r", "ROOK"}, {"+b", "PROMOTED_BISHOP"}, {"+r", "PROMOTED_ROOK"},
             {"g", "GOLD"}, {"+p", "PROMOTED_PAWN"}, {"+l", "PROMOTED_LANCE"}, {"+n", "PROMOTED_KNIGHT"},
             {"+s", "PROMOTED_SILVER"}};
+
+        vector<string> in_hand_order = {"p", "l", "n", "s", "g", "b", "r"};
 
         // Cache the position(s) [0-81] of each kind of piece on the board since used many times in board shape feature
         // Key is a piece type string (as in piece_strings above), value is a pair of vectors
@@ -128,8 +133,9 @@ class ShogiFeatures {
 
         // Feature functions
         void material(Shogi& s);
+        void material_in_hand(Shogi& s);
         void king_safety(Shogi& s);
-        void pieces_in_hand(Shogi& s);
+        void total_pieces_in_hand(Shogi& s);
         void controlled_squares(Shogi& s);
         void castle(Shogi& s);
 
