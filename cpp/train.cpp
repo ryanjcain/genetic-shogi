@@ -293,12 +293,12 @@ int main() {
 		OrganismEvaluator evaluator;
 		evaluator.set_mode("train_drops");
 
-		evaluator.set_num_eval(500);
+		evaluator.set_num_eval(10);
     /* vector<int> weights(evaluator.get_num_features(), 1); */
 
 		vector<int> weights = {3039, 505, 2062, 1841, 3139, 3709, 3700, 1471, 1965, 3178, 1902, 214, 2798,
 			1459, 2791, 1095, 2624, 3195, 3935, 1339, 67, 340, 301, 49, 1002, 14, 17, 36, 57, 1, 13, 14, 5,
-			48, 11, 52, 19, 42, 8, 18, 9, 36, 45, 63, 26, 6, 19, 100};
+			48, 11, 52, 19, 42, 8, 18, 9, 12, 36, 45, 63, 26, 6, 19, 100};
 
 		evaluator.evaluate_organism(weights);
 		for (auto& e : evaluator.get_evaluation_stats()) {

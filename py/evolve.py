@@ -132,10 +132,20 @@ def evolve(toolbox, log, prog_bar):
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
 
+    pawn_val = '1100100'.zfill(cfg['bit_width_wide'])
+    pawn_val = [int(i) for i in pawn_val]
+    print("Pawn value: ", pawn_val)
+    print("Pawn value gray: ", ENCODER.bin2gray(pawn_val))
+    pawn_gene =  {'start': 0, 
+                  'stop': cfg['bit_width_wide'], 
+                  'value': ENCODER.bin2gray(pawn_val)
+                  }
+
     prog_bar.start()
 
     eaSimple(pop, toolbox, cxpb=cfg['cxpb'], mutpb=cfg['mutpb'], ngen=cfg['n_gen'],
-             stats=stats, halloffame=hof, logger=log, verbose=True, bar=prog_bar)
+             stats=stats, halloffame=hof, logger=log, verbose=True, bar=prog_bar,
+             const_gene=pawn_gene)
 
     prog_bar.finish()
 

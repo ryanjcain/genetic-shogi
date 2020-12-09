@@ -30,6 +30,13 @@ def varAnd(population, toolbox, cxpb, mutpb):
 
     return offspring
 
+def set_gene_value(population, gene):
+    '''
+    Set specified gene to value for every individual ine population. A gene is specified by its
+    start and end bit.
+    '''
+    for ind in population:
+        ind[gene['start']:gene['stop']] = gene['value']
 
 def eaSimple(population,
              toolbox,
@@ -40,11 +47,14 @@ def eaSimple(population,
              halloffame=None,
              logger=None,
              verbose=__debug__,
-             bar=None):
+             bar=None,
+             const_gene=None):
     """
     Modified version of the simple evolutionary algorithm provided in DEAP
     to facilitate my own logger and progressbar.
     """
+    if const_gene:
+        set_gene_value(population, const_gene)
 
     last_gen = time.time()
 
@@ -103,6 +113,9 @@ def eaSimple(population,
 
         # Replace the current population by the offspring + elitist
         population[:] = offspring
+
+        if const_gene:
+            set_gene_value(population, const_gene)
 
         # Append the current generation statistics to the logbook
         record = stats.compile(population) if stats else {}\

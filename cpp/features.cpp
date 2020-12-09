@@ -168,7 +168,7 @@ void ShogiFeatures::add_feature(string name, bool major, string link="") {
     // Link the feature to the other
     if (!link.empty()) {
         if (link == "PAWN_VALUE") {
-            feature_links[name] = -1;
+            /* feature_links[name] = -1; */
         } else {
             // Otherwise add the link to the other feature
             auto itr = find(feature_order.begin(), feature_order.end(), link);
@@ -185,6 +185,7 @@ void ShogiFeatures::add_feature(string name, bool major, string link="") {
 
 void ShogiFeatures::init_features() {
     // Initialize major features (longer bit width) first
+    add_feature("PAWN_VALUE", true);
     add_feature("LANCE_VALUE", true);
     add_feature("KNIGHT_VALUE", true);
     add_feature("SILVER_VALUE", true);
@@ -308,16 +309,18 @@ int ShogiFeatures::evaluate_feature_vec(vector<int>& fV, vector<int>& weights) {
     }
 
     // Initialize score with pawn value and accumulate other features with weights
-    int score = pawn_count * pawn_value;
+    /* int score = pawn_count * pawn_value; */
     /* for (int i = 0; i < n_features; i++) { */
     /*     score += fV[i] * weights[i]; */
     /* } */
 
+    int score = 0;
     for (int i = 0; i < n_features; i++) {
         // See if the feature is linked to another weight
         if (feature_links.count(feature_order[i])) {
             int linked_index = feature_links[feature_order[i]];
-            int linked_weight = linked_index == -1 ? pawn_value : weights[linked_index];
+            /* int linked_weight = linked_index == -1 ? pawn_value : weights[linked_index]; */
+            int linked_weight = weights[linked_index];
             score += fV[i] * (linked_weight + weights[i]);
         } else {
             score += fV[i] * weights[i];
@@ -380,10 +383,11 @@ void ShogiFeatures::material(Shogi& s) {
         int diff = piece_counts[piece].first - piece_counts[piece].second;
 
         // Tally up all the pieces that move same as a gold if param specified
-        if (piece == pawn) {
-            pawn_count = diff;
-        }
-        else if (group_promotions and move_as_gold.count(piece)) {
+        /* if (piece == pawn) { */
+        /*     pawn_count = diff; */
+        /* } */
+        /* else if (group_promotions and move_as_gold.count(piece)) { */
+        if (group_promotions and move_as_gold.count(piece)) {
             gold_count += diff;
         } else {
             /* string name = piece_strings_to_full[piece] + "_VALUE"; */
