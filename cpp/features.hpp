@@ -153,7 +153,7 @@ class ShogiFeatures {
         void piece_ahead_of_pawns_penalty(Shogi& s);
 
         // Features for GOOD shape
-        void bishop_head_protected(Shogi& s);
+        void bishop_heads(Shogi& s);
         void reclining_silver(Shogi& s);
         void claimed_files(Shogi& s);
         void adjacent_silvers(Shogi& s);

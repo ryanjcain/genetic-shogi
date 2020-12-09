@@ -221,8 +221,11 @@ void ShogiFeatures::init_features() {
     add_feature("PLAYER_KING_THREAT_PENALTY", true);
     add_feature("BISHOP_MOBILITY", true);
     add_feature("ROOK_MOBILITY", true);
+    add_feature("ENEMY_KING_ATTACKS", true);
     add_feature("ENEMY_KING_ATTACKS_SAFE", true);
 
+    add_feature("BISHOP_HEAD_PROTECTED", false);
+    add_feature("BISHOP_HEAD_ATTACK", false);
     add_feature("PLAYER_KING_DEFENDERS", false);
     add_feature("PLAYER_KING_ESCAPE_ROUTES", false);
     add_feature("IN_CAMP_VULNERABILITY_PENALTY", false);
@@ -232,7 +235,6 @@ void ShogiFeatures::init_features() {
     add_feature("GOLD_ADJACENT_ROOK_PENALTY", false);
     add_feature("BOXED_IN_BISHOP_PENALTY", false);
     add_feature("PIECE_AHEAD_OF_PAWN_PENALTY", false);
-    add_feature("BISHOP_HEAD_PROTECTED", false);
     add_feature("RECLINING_SILVER", false);
     add_feature("CLAIMED_FILES", false);
     add_feature("ADJACENT_SILVERS", false);
@@ -245,7 +247,6 @@ void ShogiFeatures::init_features() {
     add_feature("ROOK_SEMI_OPEN_FILE", false);
     add_feature("BLOCKED_FLOW_SAFE", false);
     add_feature("AGGRESSION_BALANCE", false);
-    add_feature("ENEMY_KING_ATTACKS", false);
     add_feature("TOTAL_ATTACKING", false);
     add_feature("DISTANCE_TO_KINGS", false);
 }
@@ -261,7 +262,7 @@ void ShogiFeatures::load_features(Shogi& s) {
     gold_adjacent_rook_penalty(s);
     boxed_in_bishop_penalty(s);
     piece_ahead_of_pawns_penalty(s);
-    bishop_head_protected(s);
+    bishop_heads(s);
     reclining_silver(s);
     claimed_files(s);
     adjacent_silvers(s);
@@ -749,24 +750,46 @@ void ShogiFeatures::piece_ahead_of_pawns_penalty(Shogi& s) {
 }
 
 // Features for GOOD shape
-void ShogiFeatures::bishop_head_protected(Shogi& s) {
+void ShogiFeatures::bishop_heads(Shogi& s) {
+    int opponent = player ^ 1;
     vector<int> bishops = piece_pos["b"].first;
 
     int heads_protected = 0;
     for (int pos : bishops) {
         vector<int> adj = find_adjacent(pos);
-
         if (adj[top] != -1) {
             // Check if head is being defended
-            if (s.boardFixedAttacking[player][pos].size()) {
-                heads_protected += 1;
-            } else if (s.boardFlowAttacking[player][pos].size()){
-                heads_protected += 1;
+            heads_protected += s.boardFixedAttacking[player][adj[top]].size();
+            heads_protected += s.boardFlowAttacking[player][adj[top]].size();
+        }
+    }
+
+
+    int enemy_head_attack = 0;
+    // Find the opponent bishop
+    for (int i = 0; i < 40; i++) {
+        // Skip if the piece is in the hand
+        if (s.gomaPos[i] == -1) continue;
+
+        // Get possetion for that piece and if it is upgraded or not
+        int piece_type = s.gomaKind[i];
+        int id = gomakindID(piece_type);
+        int upgraded = gomakindUP(piece_type);
+
+        // Find enemy bishop
+        if (id == BISHOP and gomakindChesser(piece_type) == opponent and !upgraded) {
+            int enemy_bishop_pos = s.gomaPos[i];
+            vector<int> adj = find_adjacent(enemy_bishop_pos);
+            if (adj[top] != -1) {
+                // Check if head is being attacked
+                enemy_head_attack += s.boardFixedAttacking[player][adj[top]].size();
+                enemy_head_attack += s.boardFlowAttacking[player][adj[top]].size();
             }
         }
     }
 
     features["BISHOP_HEAD_PROTECTED"] = heads_protected;
+    features["BISHOP_HEAD_ATTACK"] = enemy_head_attack;
 }
 
 void ShogiFeatures::reclining_silver(Shogi& s) {
