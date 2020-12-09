@@ -63,11 +63,13 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
   int player = (s.round % 2);
 	heuristic.setPlayer(player);
 
-	cout << "----------------------------------------" << endl;
-	string curr = player == SENTE ? "Sente" : "Gote";
-	cout << "Player: " << curr << endl;
-	cout << "Starting position:" << endl;
-	s.EasyBoardPrint();
+	if (DEBUG) {
+		cout << "----------------------------------------" << endl;
+		string curr = player == SENTE ? "Sente" : "Gote";
+		cout << "Player: " << curr << endl;
+		cout << "Starting position:" << endl;
+		s.EasyBoardPrint();
+	}
 
 	// Loop though all possible moves reachable from board state
 	int hits = 0;
