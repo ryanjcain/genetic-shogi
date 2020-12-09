@@ -57,6 +57,7 @@ class ShogiFeatures {
         int pawn_index;
         int pawn_count;
         int pawn_value;
+        int king_dist_discount;
 
         bool group_promotions;
         bool in_hand_bonus;

@@ -35,8 +35,11 @@ void OrganismEvaluator::set_mode(string mode_string) {
 	if (find(modes.begin(), modes.end(), mode_string) == modes.end()) {
 			throw invalid_argument("Mode not supported");
 	}
-	mode = mode_string;
+	// Careful with tt cache when switching between modes
+	feature_tt.clear();
+	tt_full = false;
 	sample = mode == train_mode ? train_data : test_data;
+	mode = mode_string;
 }
 
 Shogi OrganismEvaluator::load_game(string board) {
@@ -51,6 +54,7 @@ Shogi OrganismEvaluator::load_game(string board) {
 /* Function to return best move based on heuristic synchronously */
 int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) {
 
+
 	// Initialize shogi object based on board and best score / move to 0
 	Shogi s = load_game(board);
 	int best_score = INT_MIN, best_move = 0;
@@ -58,6 +62,12 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 	// Set the perspective for the heuristic evaluation to current player for the input board
   int player = (s.round % 2);
 	heuristic.setPlayer(player);
+
+	cout << "----------------------------------------" << endl;
+	string curr = player == SENTE ? "Sente" : "Gote";
+	cout << "Player: " << curr << endl;
+	cout << "Starting position:" << endl;
+	s.EasyBoardPrint();
 
 	// Loop though all possible moves reachable from board state
 	int hits = 0;
@@ -70,17 +80,18 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 		result.MakeMove(move);
 
 		// Print the board in debug mode
-		if (DEBUG) {
-			cout << "----------------------------------------" << endl;
-			string curr = player == SENTE ? "Sente" : "Gote";
-			cout << "Player: " << curr << endl;
-			cout << "Starting position:" << endl;
-			s.EasyBoardPrint();
-			printMove(move);
-			cout << "Result:" << endl;
-			result.EasyBoardPrint();
-			cout << endl;
-		}
+		/* if (DEBUG) { */
+		/* 	cout << "----------------------------------------" << endl; */
+		/* 	string curr = player == SENTE ? "Sente" : "Gote"; */
+		/* 	cout << "Player: " << curr << endl; */
+		/* 	cout << "Starting position:" << endl; */
+		/* 	s.EasyBoardPrint(); */
+		/* 	cout << "Looking at first available move: "; */
+		/* 	printMove(move); */
+		/* 	cout << "Result:" << endl; */
+		/* 	result.EasyBoardPrint(); */
+		/* 	cout << endl; */
+		/* } */
 
 		// Key used for the transposition table of {pos, featureVector}
 		vector<unsigned char> result_state = result.SaveGame();
@@ -102,15 +113,14 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 		int score = heuristic.evaluate_feature_vec(fV, weights);
 
 		// Print the raw feature vector in debug mode
-		if (DEBUG) {
-			print_vec(fV);
-			cout << "Score: " << score << endl;
-			cout << "----------------------------------------" << endl;
-			cout << endl;
+		/* if (DEBUG) { */
+		/* 	print_vec(fV); */
+		/* 	cout << "Score: " << score << endl; */
+		/* 	cout << endl; */
 
-			// Break from the loop after looking at one move
-			break;
-		}
+		/* 	// Break from the loop after looking at one move */
+		/* 	/1* break; *1/ */
+		/* } */
 
 
 
@@ -142,16 +152,19 @@ void OrganismEvaluator::log_stats(string board, int move, int grandmaster_move) 
 			stats["upgrade_total"] += UPGRADED == moveUpgrade(grandmaster_move) ? 1 : 0;
 			stats["drop_total"] += PLAYING == movePlaying(grandmaster_move) ? 1 : 0;
 
-			// Print out the board and the drop move if in debug mode
-			if (DEBUG and mode == train_drops) {
-				Shogi s = load_game(board);
-  			int player = (s.round % 2);
-				string turn = player == SENTE ? "Sente" : "Gote";
+			/* // Print out the board and the drop move if in debug mode */
+			/* if (DEBUG and mode == train_drops) { */
+			/* 	Shogi s = load_game(board); */
+  			/* int player = (s.round % 2); */
+			/* 	string turn = player == SENTE ? "Sente" : "Gote"; */
 
-				cout << "Grandmaster Drop Move for " << turn << " -----" << endl;
-				cout << "     ";
-				printMove(grandmaster_move);
-			}
+			/* 	cout << "Grandmaster Drop Move for " << turn << endl; */
+			/* 	cout << "     "; */
+			/* 	printMove(grandmaster_move); */
+			/* 	cout << "     "; */
+			/* 	cout << "Heuristic chose:  "; */
+			/* 	printMove(move); */
+			/* } */
 
 			// Add to stats if move was correctly guessed
 			if (move == grandmaster_move) {
@@ -185,6 +198,15 @@ int OrganismEvaluator::evaluate_synchronous(vector<int> weights, int& pos) {
 		// Compare selection with the choice of the grandmaster
 		if (move == grandmaster_move) {
 			correct++;
+		}
+
+		if (DEBUG) {
+			cout << "Grandmaster move:" << endl;
+			cout << "     ";
+			printMove(grandmaster_move);
+			cout << "Heuristic chose:  " << endl;
+			cout << "     ";
+			printMove(move);
 		}
 	}
 
@@ -267,15 +289,19 @@ int main() {
     // Used if making featuresTests
 
 		OrganismEvaluator evaluator;
-		evaluator.set_num_eval(20);
-    vector<int> weights(evaluator.get_num_features(), 1);
-    for (int i = 0; i < 1; i++) {
-				cout << "'Generation' " << i << endl;
-        int correct1 = evaluator.evaluate_organism(weights);
-        cout << "Guessed: " << correct1 << endl;
-        /* cout << "Hits: " << hits << endl; */
-        /* hits = 0; */
-    }
+		evaluator.set_mode("train_drops");
+
+		evaluator.set_num_eval(500);
+    /* vector<int> weights(evaluator.get_num_features(), 1); */
+
+		vector<int> weights = {3039, 505, 2062, 1841, 3139, 3709, 3700, 1471, 1965, 3178, 1902, 214, 2798,
+			1459, 2791, 1095, 2624, 3195, 3935, 1339, 67, 340, 301, 49, 1002, 14, 17, 36, 57, 1, 13, 14, 5,
+			48, 11, 52, 19, 42, 8, 18, 9, 36, 45, 63, 26, 6, 19, 100};
+
+		evaluator.evaluate_organism(weights);
+		for (auto& e : evaluator.get_evaluation_stats()) {
+			cout << e.first << ": " << e.second << endl;
+		}
 
 		// Uncommment below for position / move generation testing
 		/* cout << "--- Board and Move Tests ---" << endl; */

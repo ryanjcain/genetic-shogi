@@ -21,7 +21,7 @@ BIT_WIDTH_WIDE = 12  # Paper used 16 for pieces
 LOG_FILE = "results.txt"
 VERBOSE = False  # Print out each organism's weights throughout evolution
 
-EVAL_MODE = "train_drops"
+EVAL_MODE = "train"
 
 # Save all of the parameters into a list for easy import/exporting
 params = {

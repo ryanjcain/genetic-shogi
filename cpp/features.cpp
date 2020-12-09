@@ -145,6 +145,7 @@ ShogiFeatures::ShogiFeatures(int player) {
     CASTLE_THRESHOLD = 100;
 
     n_major_features = 0;
+    king_dist_discount = 1;
 
     pawn_count = 0;
     pawn_index = 0;
@@ -216,9 +217,14 @@ void ShogiFeatures::init_features() {
         add_feature("PIECES_IN_HAND", false);
     }
 
+    // Other major features
+    add_feature("PLAYER_KING_THREAT_PENALTY", true);
+    add_feature("BISHOP_MOBILITY", true);
+    add_feature("ROOK_MOBILITY", true);
+    add_feature("ENEMY_KING_ATTACKS_SAFE", true);
+
     add_feature("PLAYER_KING_DEFENDERS", false);
     add_feature("PLAYER_KING_ESCAPE_ROUTES", false);
-    add_feature("PLAYER_KING_THREAT_PENALTY", false);
     add_feature("IN_CAMP_VULNERABILITY_PENALTY", false);
     add_feature("OUT_CAMP_ATTACK", false);
     add_feature("CASTLE_FORMATION", false);
@@ -237,12 +243,9 @@ void ShogiFeatures::init_features() {
     add_feature("ROOK_ATTACK_KING_ADJ_FILE_9821", false);
     add_feature("ROOK_OPEN_FILE", false);
     add_feature("ROOK_SEMI_OPEN_FILE", false);
-    add_feature("BISHOP_MOBILITY", false);
-    add_feature("ROOK_MOBILITY", false);
-    add_feature("BLOCKED_FLOW", false);
+    add_feature("BLOCKED_FLOW_SAFE", false);
     add_feature("AGGRESSION_BALANCE", false);
     add_feature("ENEMY_KING_ATTACKS", false);
-    add_feature("ENEMY_KING_ATTACKS_SAFE", false);
     add_feature("TOTAL_ATTACKING", false);
     add_feature("DISTANCE_TO_KINGS", false);
 }
@@ -928,32 +931,52 @@ void ShogiFeatures::rook_mobility(Shogi& s) {
 }
 
 void ShogiFeatures::blocked_flow(Shogi& s) {
-    // Count how much of the opponent's flow player is blocking, should help with drop pieces
+    // Count how much of the opponent's flow player is blocking and is protected
 
     int opponent = player ^ 1;
 
+    map<int, bool> seen_blockers;
     int blocked = 0;
     for (int pos = 0; pos < 81; pos++) {
-        blocked += s.boardBFlowAttacking[opponent][pos].size();
+        if (s.boardBFlowAttacking[opponent][pos].size()) {
+          for(int watchup : s.boardBFlowAttacking[opponent][pos]){
+            int blocker = watchupBlocker(watchup);
+            int gomakind = gomakindEID(s.gomaKind[blocker]);
+            int blocker_pos = s.gomaPos[blocker];
+
+            // Seeing this blocker for first time
+            if (!seen_blockers.count(blocker_pos)) {
+                seen_blockers[blocker_pos] = true;
+
+                // See if blocking piece is safe
+                int safe = s.boardFixedAttacking[player][blocker_pos].size() +
+                           s.boardFlowAttacking[player][blocker_pos].size();
+                if (safe) {
+                    blocked += 1;
+                }
+            }
+          }
+        }
     }
 
-    features["BLOCKED_FLOW"] = blocked;
+    features["BLOCKED_FLOW_SAFE"] = blocked;
 }
 
 
 void ShogiFeatures::aggression_balance(Shogi& s) {
-    double player_agro = 0;
-    double oppn_agro = 0;
+    double sente_agro = 0;
+    double gote_agro = 0;
     for (int i = 0; i < 40; i++) {
         if (s.gomaPos[i] == -1) continue;
-        if (gomakindChesser(s.gomaKind[i]) == player) {
-            player_agro += (10 - posDan(s.gomaPos[i])) / 9;
+        if (gomakindChesser(s.gomaKind[i]) == SENTE) {
+            sente_agro += (10 - posDan(s.gomaPos[i])) / 9;
         } else {
-            oppn_agro += (10 - posDan(s.gomaPos[i])) / 9;
+            gote_agro += posDan(s.gomaPos[i]) / 9;
         }
     }
 
-    features["AGGRESSION_BALANCE"] = (int)(player_agro - oppn_agro);
+    double score = player == SENTE ? (sente_agro - gote_agro) : (gote_agro - sente_agro);
+    features["AGGRESSION_BALANCE"] = (int)(score);
 }
 
 
@@ -966,14 +989,14 @@ void ShogiFeatures::king_attack(Shogi& s) {
     // Look at all of player's pieces attacking opponent's king
     // Look at safe attacks on the king and on the surrounding squares
 
-    int num_attacks = 0, num_safe_attacks = 0;
+    int num_attacks = 0, num_safe_attacks = 0, num_pawn_attacks = 0;
     vector<int> adjacent = find_adjacent(enemy_king);
     adjacent.push_back(enemy_king);
 
     // Look enemy king position and surrounding squares
     for (int pos : adjacent) {
         // Look at all of the static attacks on that position and see if safe
-        for (int piece : s.boardFixedAttacking[player][enemy_king]) {
+        for (int piece : s.boardFixedAttacking[player][pos]) {
             int attacker = watchupAttacker(piece);
             int gomakind = s.gomaKind[attacker];
             int attack_pos = s.gomaPos[attacker];
@@ -982,11 +1005,11 @@ void ShogiFeatures::king_attack(Shogi& s) {
             int safe = s.boardFixedAttacking[player][attack_pos].size() +
                        s.boardFlowAttacking[player][attack_pos].size();
 
-            num_safe_attacks = safe ? 1 : 0;
+            num_safe_attacks += safe ? 1 : 0;
             num_attacks += 1;
         }
         // Look at all of the long range attacks on that position and see if safe
-        for (int piece : s.boardFlowAttacking[player][enemy_king]) {
+        for (int piece : s.boardFlowAttacking[player][pos]) {
             int attacker = watchupAttacker(piece);
             int gomakind = s.gomaKind[attacker];
             int attack_pos = s.gomaPos[attacker];
@@ -995,7 +1018,7 @@ void ShogiFeatures::king_attack(Shogi& s) {
             int safe = s.boardFixedAttacking[player][attack_pos].size() +
                        s.boardFlowAttacking[player][attack_pos].size();
 
-            num_safe_attacks = safe ? 1 : 0;
+            num_safe_attacks += safe ? 1 : 0;
             num_attacks += 1;
         }
     }
@@ -1008,38 +1031,10 @@ void ShogiFeatures::total_attacking(Shogi& s) {
     int opponent = (player ^ 1);
     int player_squares = 0, opponent_squares = 0;
     for (int pos = 0; pos < 81; pos++) {
-        if (s.boardFixedAttacking[player][pos].size() !=0) {
-            // Count number of pieces attacking that square
-            for (int piece : s.boardFixedAttacking[player][pos]) {
-                int attacker = watchupAttacker(piece);
-                int gomakind = gomakindID(s.gomaKind[attacker]);
-                player_squares += 1;
-            }
-        }
-        if (s.boardFlowAttacking[player][pos].size() !=0) {
-            // Count number of pieces attacking that square
-            for (int piece : s.boardFixedAttacking[player][pos]) {
-                int attacker = watchupAttacker(piece);
-                int gomakind = gomakindID(s.gomaKind[attacker]);
-                player_squares += 1;
-            }
-        }
-        if (s.boardFixedAttacking[opponent][pos].size() !=0) {
-            // Count number of pieces attacking that square
-            for (int piece : s.boardFixedAttacking[player][pos]) {
-                int attacker = watchupAttacker(piece);
-                int gomakind = gomakindID(s.gomaKind[attacker]);
-                opponent_squares += 1;
-            }
-        }
-        if (s.boardFlowAttacking[opponent][pos].size() !=0) {
-            // Count number of pieces attacking that square
-            for (int piece : s.boardFixedAttacking[player][pos]) {
-                int attacker = watchupAttacker(piece);
-                int gomakind = gomakindID(s.gomaKind[attacker]);
-                opponent_squares += 1;
-            }
-        }
+        player_squares += s.boardFixedAttacking[player][pos].size();
+        player_squares += s.boardFlowAttacking[player][pos].size();
+        opponent_squares += s.boardFixedAttacking[opponent][pos].size();
+        opponent_squares += s.boardBFlowAttacking[opponent][pos].size();
     }
 
     features["TOTAL_ATTACKING"] = player_squares - opponent_squares;
@@ -1067,7 +1062,7 @@ void ShogiFeatures::distance_to_kings(Shogi& s) {
         }
     }
 
-    features["DISTANCE_TO_KINGS"] = player_dist - opponent_dist;
+    features["DISTANCE_TO_KINGS"] = (player_dist - opponent_dist) * king_dist_discount;
 }
 
 /* Helper functions */
