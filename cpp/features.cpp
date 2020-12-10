@@ -1,6 +1,15 @@
 #include "features.hpp"
 #include <omp.h>
 
+ShogiFeatures::ShogiFeatures(int player, vector<int> weights) : ShogiFeatures(player) {
+    if (weights.size() != n_features)  {
+        string error = "Invalid initialization of shogi heuristic. Expected ";
+        error += to_string(n_features) + " weights; given " + to_string(weights.size());
+        throw invalid_argument(error);
+    }
+    this->weights = weights;
+};
+
 ShogiFeatures::ShogiFeatures(int player) {
 
     // Set the color (perspective) for the heuristic to be evaluated
@@ -146,7 +155,7 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     n_major_features = 0;
 
-    king_dist_diff = true;
+    king_dist_diff = false;
 
     pawn_count = 0;
     pawn_index = 0;
@@ -160,6 +169,7 @@ ShogiFeatures::ShogiFeatures(int player) {
 
     n_features = features.size();
 }
+
 
 void ShogiFeatures::add_feature(string name, bool major, string link="") {
     features[name] = 0;
@@ -224,8 +234,8 @@ void ShogiFeatures::init_features() {
     add_feature("BISHOP_MOBILITY", true);
     add_feature("ROOK_MOBILITY", true);
     add_feature("ENEMY_KING_ATTACKS", true);
-    add_feature("ENEMY_KING_ATTACKS_SAFE", true);
 
+    /* add_feature("ENEMY_KING_ATTACKS_SAFE", false); */
     add_feature("BISHOP_HEAD_PROTECTED", false);
     add_feature("BISHOP_HEAD_ATTACK", false);
     add_feature("PLAYER_KING_DEFENDERS", false);

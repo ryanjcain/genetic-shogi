@@ -136,7 +136,8 @@ def eaSimple(population,
             logger.log(logbook.stream)
 
         # Global bookeeping for progressbar
-        bar.update(gen)
+        if bar:
+            bar.update(gen)
 
     return population, logbook
 

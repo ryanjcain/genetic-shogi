@@ -30,6 +30,7 @@ except ModuleNotFoundError as e:
 EVALUATOR = gs.OrganismEvaluator()
 EVALUATOR.set_mode(cfg['eval_mode'])
 EVALUATOR.set_num_eval(cfg['n_train'])
+EVALUATOR.set_num_eval(5)
 
 # Global encoder / decoder to store bit caches used in gray bit to int conversion
 ENCODER = GrayEncoder(cfg['bit_width_small'], 
@@ -192,6 +193,15 @@ def main():
     # Record the best individual from all N generations
     logger.log("\n--------------- Best Individual ---------------")
     best_weights = ENCODER.gray_bits_to_weights(hof[0])
+
+    # Save the best individual to the organisms file
+    organism_file = open(cfg['organism_file'], 'a+')
+
+    test = str(hof[0])
+    organism_file.write(test + '\n')
+    organism_file.close()
+
+    # Log the best organism in a nice format
     for i, label in enumerate(labels):
         logger.log("{}: {}".format(label, best_weights[i]), end="\n")
 

@@ -35,7 +35,7 @@ PYBIND_CONF= `python3-config --extension-suffix`
 CXXFLAGS= -g3 -O3 -std=c++11 -fopenmp -fPIC
 
 # Object file dependancies
-DEPENDENCIES= train.o features.o lmcache.o helper.o shogi.o
+DEPENDENCIES= train.o features.o lmcache.o helper.o shogi.o organism-game.o game.o agent.o gshogi-agent.o 
 
 
 ### -------- Build Targets --------------###
@@ -88,6 +88,26 @@ train.o: train.cpp
 
 lmcache.o: lmcache.cpp lmcache.hpp
 	@echo "----- Building MovesCache Wrapper ----"
+	$(CXX) $(CXXFLAGS) $(PYBIND_FLAG) -c $< -o $@
+	@echo
+
+organism-game.o: organism-game.cpp organism-game.hpp
+	@echo "----- Building Organism Game -----"
+	$(CXX) $(CXXFLAGS) $(PYBIND_FLAG) -c $< -o $@
+	@echo
+
+agent.o: agent.cpp agent.hpp
+	@echo "----- Building Agent Abstract -----"
+	$(CXX) $(CXXFLAGS) $(PYBIND_FLAG) -c $< -o $@
+	@echo
+
+gshogi-agent.o: gshogi-agent.cpp gshogi-agent.hpp
+	@echo "----- Building Game Abstract -----"
+	$(CXX) $(CXXFLAGS) $(PYBIND_FLAG) -c $< -o $@
+	@echo
+
+game.o: game.cpp game.hpp
+	@echo "----- Building Game Abstract -----"
 	$(CXX) $(CXXFLAGS) $(PYBIND_FLAG) -c $< -o $@
 	@echo
 

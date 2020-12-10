@@ -1,3 +1,4 @@
+#pragma once
 #include "helper.hpp"
 #include "lmcache.hpp"
 #include <chrono>
@@ -14,8 +15,8 @@ class ShogiFeatures {
     public:
 
         ShogiFeatures(int player);
+        ShogiFeatures(int player, vector<int> weights);
         /* ShogiFeatures() { this->weights = NULL; NUM_FEATURES = 20; }; */
-        ShogiFeatures(int player, vector<int> weights) : ShogiFeatures(player) { this->weights = weights; };
         /* ShogiFeatures(string cache_file); */
         vector<int> gote_camp;
         vector<int> sente_camp;

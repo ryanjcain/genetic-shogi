@@ -1,3 +1,4 @@
+#pragma once
 #include "shogi.hpp"
 
 int posSuji(int pos);

@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include "train.hpp"
+#include "organism-game.hpp"
 
 namespace py = pybind11;
 
@@ -8,8 +9,8 @@ namespace py = pybind11;
 PYBIND11_MODULE(GeneticShogi, m) {
     m.doc() = "Python3 package for Shogi agent based on genetic algorithms";
 
-    /* m.def("evaluate", &evaluate_organism, "A function which evaluates an organism"); */
 
+    // Organism evaluator class
     py::class_<OrganismEvaluator>(m, "OrganismEvaluator")
         .def(py::init<>())
         .def("set_mode", &OrganismEvaluator::set_mode)
@@ -21,4 +22,9 @@ PYBIND11_MODULE(GeneticShogi, m) {
         .def("get_num_major_features", &OrganismEvaluator::get_num_major_features)
         .def("evaluate_organism", &OrganismEvaluator::evaluate_organism)
         .def("get_evaluation_stats", &OrganismEvaluator::get_evaluation_stats);
+
+    // Class to play games between two organisms
+    py::class_<OrganismGame>(m, "OrganismGame")
+        .def(py::init<vector<int>, vector<int>, int, int>())
+        .def("simulate", &OrganismGame::simulate);
 }

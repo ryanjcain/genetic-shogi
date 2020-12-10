@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -7,7 +8,7 @@ class Shogi{
 public:
 	int board[82];
 	int boardChesser[82];
-	
+
 	int gomaKind[82];
 	int gomaPos[82];
 	int round;
@@ -53,10 +54,10 @@ public:
 
 const int FOOT = 0;
 const int SILVER = 1;
-const int CASSIA = 2;      
+const int CASSIA = 2;
 const int CHARIOT = 3;
 const int FLYING = 4;
-const int ANGLE = 5;       
+const int ANGLE = 5;
 const int KING = 6;
 const int GOLD = 7;
 
@@ -74,6 +75,14 @@ const int PLAYING = 1;
 const int SENTE = 0;
 const int GOTE = 1;
 
+// These can be generated with functions belows, but they are the
+// int forms of promoted piece
+const int PRO_PAWN = 8;
+const int PRO_SILVER = 9;
+const int PRO_KNIGHT = 10;
+const int PRO_LANCE = 11;
+const int PRO_ROOK = 12;
+const int PRO_BISHOP = 13;
 
 
 int posSuji(int pos);
