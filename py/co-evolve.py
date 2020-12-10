@@ -63,8 +63,9 @@ def gameSimulationEval(individual):
         else:
             game = gs.OrganismGame(opponent, individual, cfg['max_turns'], cfg['max_search_depth'])
 
+        # Wip, simulate on the C++ side is faulting somewhere
         outcome = game.simulate()
-        if game == player:
+        if outcome == player:
             wins += 1
 
     return wins,

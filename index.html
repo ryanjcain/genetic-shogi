@@ -1,0 +1,57 @@
+<html>
+<head>
+  <META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+  <title>Genetic Algorithms for Evolving Computer Shogi</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body style="width: 750px;margin: auto auto;padding-top: 50px;">
+</div>
+  <h1>Genetic Algorithms for Evolving Computer Shogi</h1>
+  <p> Ryan Cain
+  <br> Adviser: James Glenn
+  <br> CPSC 490
+  <br> Fall 2020 </p>
+
+  <p> <b>Abstract:</b></p>
+  <div class="row">
+    <div class="column">
+      <img src="./web/shogi_traditional.png" alt="Traditional Board" style="width:100%">
+    </div>
+    <div class="column">
+      <img src="./web/shogi_western.png" alt="Westernized Board" style="width:100%">
+    </div>
+  </div>
+
+  <p>
+  Shogi, also known as Japanese chess, is a two-player strategy board game that sees origins of play as early as 1210. The game is played on a 9x9 grid (as opposed to an 8x8 grid for standard chess) with 8 types of starting pieces (King, Rook, Bishop, Gold General, Silver General, Knight, Lance, and Pawn) as shown above (traditional pieces on the left, westernized on the right).
+  </p>
+
+  <p>
+  The aspects that separate shogi from chess are the ability to promote multiple piece types and the ability to drop captured pieces back into play. These rules result in a significantly
+  larger branching factor than chess, meaning that there are a total of 10<sup>226</sup> possible playouts of a shogi game, compared to just 10<sup>123</sup> for chess.
+  </p>
+
+  <p>This project approaches the problem by trying to use genetic algorithms to evolve a set of weights used in a heuristic function to evaluate board positions. The methodology follows
+  a paper that used similar approaches to achieve a grandmaster level play for a chess program: <a href="original_chess_ga_paper.pdf"><em>Genetic Algorithms for Evolving Computer Chess</em></a>.
+  I attempt to build off of a framework I built in a previous semester and follow the three step process outlined in this paper. First, a set of parameters for 
+  a heuristic function is generated based on samples of grandmaster games. Second, the process is repeated to generate multiple candidates before they compete in a coevolution phase 
+  to produce a single best set of parameters. Lastly, they evolve a set of parameters used in common selective search algorithms.
+  </p>
+ 
+  <p>
+  Based on the game features I implemented, I was able to find some success in tuning the parameters of a heuristic function, with my best organisms correctly matching the grandmaster
+  move over 17 percent of the time in a 1-ply search. The target achieved in the paper mentioned above was 30 percent; however, given that state-space complexity of shogi is orders of 
+  magnitude larger than chess, 17 percent accuracy in a depth one search is still a success. This is also the case when considering that the top performing shogi agents use heuristics 
+  comprised of millions of features, compared to just the roughly 60 I used for this project.
+  </p>
+
+  <p> <b>Links: </b>
+  <br>
+  <a href="./web/rjc78_project_proposal.pdf">Project Proposal</a><br>
+  <a href="./web/shogi_mellon_presentation.pptx">Mellon Forum Presentation</a><br>
+  <a href="mth43_final_report.pdf">Final Report</a><br>
+  <a href="https://github.com/ryanjcain/genetic-shogi">Github Repository</a>
+</p>
+</body>
+</html>
