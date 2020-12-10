@@ -145,7 +145,8 @@ ShogiFeatures::ShogiFeatures(int player) {
     CASTLE_THRESHOLD = 100;
 
     n_major_features = 0;
-    king_dist_discount = 1;
+
+    king_dist_diff = true;
 
     pawn_count = 0;
     pawn_index = 0;
@@ -249,7 +250,52 @@ void ShogiFeatures::init_features() {
     add_feature("BLOCKED_FLOW_SAFE", false);
     add_feature("AGGRESSION_BALANCE", false);
     add_feature("TOTAL_ATTACKING", false);
-    add_feature("DISTANCE_TO_KINGS", false);
+    /* add_feature("DISTANCE_TO_KINGS", false); */
+
+
+    if (king_dist_diff) {
+        add_feature("DTK_DIFF_PAWN", false);
+        add_feature("DTK_DIFF_LANCE", false);
+        add_feature("DTK_DIFF_KNIGHT", false);
+        add_feature("DTK_DIFF_SILVER", false);
+        add_feature("DTK_DIFF_BISHOP", false);
+        add_feature("DTK_DIFF_ROOK", false);
+        add_feature("DTK_DIFF_GOLD", false);
+        add_feature("DTK_DIFF_PROMOTED_PAWN", false);
+        add_feature("DTK_DIFF_PROMOTED_LANCE", false);
+        add_feature("DTK_DIFF_PROMOTED_KNIGHT", false);
+        add_feature("DTK_DIFF_PROMOTED_SILVER", false);
+        add_feature("DTK_DIFF_PROMOTED_BISHOP", false);
+        add_feature("DTK_DIFF_PROMOTED_ROOK", false);
+    } else {
+        // Try distance to kings for individual pieces
+        add_feature("DTK_FRIENDLY_PAWN", false);
+        add_feature("DTK_ENEMY_PAWN", false);
+        add_feature("DTK_FRIENDLY_LANCE", false);
+        add_feature("DTK_ENEMY_LANCE", false);
+        add_feature("DTK_FRIENDLY_KNIGHT", false);
+        add_feature("DTK_ENEMY_KNIGHT", false);
+        add_feature("DTK_FRIENDLY_SILVER", false);
+        add_feature("DTK_ENEMY_SILVER", false);
+        add_feature("DTK_FRIENDLY_BISHOP", false);
+        add_feature("DTK_ENEMY_BISHOP", false);
+        add_feature("DTK_FRIENDLY_ROOK", false);
+        add_feature("DTK_ENEMY_ROOK", false);
+        add_feature("DTK_FRIENDLY_GOLD", false);
+        add_feature("DTK_ENEMY_GOLD", false);
+        add_feature("DTK_FRIENDLY_PROMOTED_PAWN", false);
+        add_feature("DTK_ENEMY_PROMOTED_PAWN", false);
+        add_feature("DTK_FRIENDLY_PROMOTED_LANCE", false);
+        add_feature("DTK_ENEMY_PROMOTED_LANCE", false);
+        add_feature("DTK_FRIENDLY_PROMOTED_KNIGHT", false);
+        add_feature("DTK_ENEMY_PROMOTED_KNIGHT", false);
+        add_feature("DTK_FRIENDLY_PROMOTED_SILVER", false);
+        add_feature("DTK_ENEMY_PROMOTED_SILVER", false);
+        add_feature("DTK_FRIENDLY_PROMOTED_BISHOP", false);
+        add_feature("DTK_ENEMY_PROMOTED_BISHOP", false);
+        add_feature("DTK_FRIENDLY_PROMOTED_ROOK", false);
+        add_feature("DTK_ENEMY_PROMOTED_ROOK", false);
+    }
 }
 
 void ShogiFeatures::load_features(Shogi& s) {
@@ -768,27 +814,14 @@ void ShogiFeatures::bishop_heads(Shogi& s) {
         }
     }
 
-
     int enemy_head_attack = 0;
-    // Find the opponent bishop
-    for (int i = 0; i < 40; i++) {
-        // Skip if the piece is in the hand
-        if (s.gomaPos[i] == -1) continue;
-
-        // Get possetion for that piece and if it is upgraded or not
-        int piece_type = s.gomaKind[i];
-        int id = gomakindID(piece_type);
-        int upgraded = gomakindUP(piece_type);
-
-        // Find enemy bishop
-        if (id == BISHOP and gomakindChesser(piece_type) == opponent and !upgraded) {
-            int enemy_bishop_pos = s.gomaPos[i];
-            vector<int> adj = find_adjacent(enemy_bishop_pos);
-            if (adj[top] != -1) {
-                // Check if head is being attacked
-                enemy_head_attack += s.boardFixedAttacking[player][adj[top]].size();
-                enemy_head_attack += s.boardFlowAttacking[player][adj[top]].size();
-            }
+    vector<int> oppn_bishops = piece_pos["b"].second;
+    for (int pos : oppn_bishops) {
+        vector<int> adj = find_adjacent(pos);
+        if (adj[top] != -1) {
+            // Check if head is being attacked
+            enemy_head_attack += s.boardFixedAttacking[player][adj[top]].size();
+            enemy_head_attack += s.boardFlowAttacking[player][adj[top]].size();
         }
     }
 
@@ -1077,19 +1110,70 @@ void ShogiFeatures::distance_to_kings(Shogi& s) {
                     s.gomaPos[s.GOTEKINGNUM] :
                     s.gomaPos[s.SENTEKINGNUM];
 
+    // Initialize map of distances to king
+    map<string, int> distances_diff;
+    map<string, int> distances_friendly;
+    map<string, int> distances_enemy;
 
-    int player_dist = 0, opponent_dist = 0;
-    // Look at how far each piece is away from opponnet king
-    for (int i = 0; i < 40; i++) {
-        if (s.gomaPos[i] == -1) continue;
-        if (gomakindChesser(s.gomaKind[i]) == player) {
-            player_dist += distance(s.gomaPos[i], enemy_king);
-        } else {
-            opponent_dist += distance(s.gomaPos[i], player_king);
+    if (king_dist_diff) {
+        for (auto& positions : piece_pos) {
+            string piece = positions.first;
+            vector<int> player_pieces = positions.second.first;
+            vector<int> oppn_pieces = positions.second.second;
+
+            int player_dist = 0, oppn_dist = 0;
+            for (int pos : player_pieces) {
+                player_dist += distance(pos, enemy_king);
+            }
+            for (int pos : oppn_pieces) {
+                oppn_dist += distance(pos, player_king);
+            }
+
+            distances_diff[piece] = player_dist - oppn_dist;
+        }
+
+        // Add these features
+        for (string piece : piece_strings) {
+            string name = "DTK_DIFF_" + piece_strings_to_full[piece];
+            features[name] = distances_diff[piece];
         }
     }
 
-    features["DISTANCE_TO_KINGS"] = (player_dist - opponent_dist) * king_dist_discount;
+    // Else have a weight for each of player's piece distance to thier own kng and enemy
+    else {
+        // Distance to player's own king
+        for (auto& positions : piece_pos) {
+            string piece = positions.first;
+            vector<int> player_pieces = positions.second.first;
+            for (int pos : player_pieces) {
+                distances_friendly[piece] = distance(pos, player_king);
+                distances_enemy[piece] = distance(pos, enemy_king);
+            }
+        }
+
+
+        // Add these features
+        for (string piece : piece_strings) {
+            string name_friendly = "DTK_FRIENDLY_" + piece_strings_to_full[piece];
+            string name_enemy = "DTK_ENEMY_" + piece_strings_to_full[piece];
+            features[name_friendly] = distances_friendly[piece];
+            features[name_enemy] = distances_friendly[piece];
+        }
+    }
+
+    // Basic difference of distances
+    /* int player_dist = 0, opponent_dist = 0; */
+    /* // Look at how far each piece is away from opponnet king */
+    /* for (int i = 0; i < 40; i++) { */
+    /*     if (s.gomaPos[i] == -1) continue; */
+    /*     if (gomakindChesser(s.gomaKind[i]) == player) { */
+    /*         player_dist += distance(s.gomaPos[i], enemy_king); */
+    /*     } else { */
+    /*         opponent_dist += distance(s.gomaPos[i], player_king); */
+    /*     } */
+    /* } */
+
+    /* features["DISTANCE_TO_KINGS"] = (player_dist - opponent_dist) * king_dist_discount; */
 }
 
 /* Helper functions */

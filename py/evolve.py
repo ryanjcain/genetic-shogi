@@ -134,8 +134,6 @@ def evolve(toolbox, log, prog_bar):
 
     pawn_val = '1100100'.zfill(cfg['bit_width_wide'])
     pawn_val = [int(i) for i in pawn_val]
-    print("Pawn value: ", pawn_val)
-    print("Pawn value gray: ", ENCODER.bin2gray(pawn_val))
     pawn_gene =  {'start': 0, 
                   'stop': cfg['bit_width_wide'], 
                   'value': ENCODER.bin2gray(pawn_val)
