@@ -59,7 +59,11 @@ class ShogiFeatures {
         int pawn_count;
         int pawn_value;
         int king_dist_discount;
+        int king_attack_discount = 100;
+        int n_king_attack = 0;
 
+        bool use_set_king_attack_weight;
+        vector<int> set_king_attack_weights = {0, 50, 75, 88, 94, 97, 99};
         bool king_dist_diff;
         bool group_promotions;
         bool in_hand_bonus;
@@ -71,12 +75,13 @@ class ShogiFeatures {
         // Keep track of the names and indexes of features in the feature vector
         // Major determines if it is a major feature and deserves larger bit width or if it is linked to
         // another weight (only really the case for piece features)
-        void add_feature(string name, bool major, string link);
+        void add_feature(string name, bool major, string link, bool hide);
 
         // Preserve the order of initialization as it is used later to split major and minor bit widths
         vector<string> feature_order;
         map<string, int> feature_links;
-
+        map<string, int> enemy_features;
+        vector<string> enemy_feature_order;
 
         string pawn = "p";
         vector<string> piece_strings = {"p", "l", "n", "s", "b", "r", "+b", "+r", "g",
@@ -168,6 +173,8 @@ class ShogiFeatures {
         void bishop_mobility(Shogi& s);
         void rook_mobility(Shogi& s);
         void aggression_balance(Shogi& s);
+        void king_attack_zone(Shogi& s);
+        pair<int, map<string, int>> count_king_attacks(Shogi& s, int side);
 
         // Try to help with drops, count the number of pieces that are blocking flow of an enemy
         void blocked_flow(Shogi& s);

@@ -30,7 +30,6 @@ except ModuleNotFoundError as e:
 EVALUATOR = gs.OrganismEvaluator()
 EVALUATOR.set_mode(cfg['eval_mode'])
 EVALUATOR.set_num_eval(cfg['n_train'])
-EVALUATOR.set_num_eval(5)
 
 # Global encoder / decoder to store bit caches used in gray bit to int conversion
 ENCODER = GrayEncoder(cfg['bit_width_small'], 

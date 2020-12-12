@@ -63,13 +63,13 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
   int player = (s.round % 2);
 	heuristic.setPlayer(player);
 
-	if (DEBUG) {
-		cout << "----------------------------------------" << endl;
-		string curr = player == SENTE ? "Sente" : "Gote";
-		cout << "Player: " << curr << endl;
-		cout << "Starting position:" << endl;
-		s.EasyBoardPrint();
-	}
+	/* if (DEBUG) { */
+	/* 	cout << "----------------------------------------" << endl; */
+	/* 	string curr = player == SENTE ? "Sente" : "Gote"; */
+	/* 	cout << "Player: " << curr << endl; */
+	/* 	cout << "Starting position:" << endl; */
+	/* 	s.EasyBoardPrint(); */
+	/* } */
 
 	// Loop though all possible moves reachable from board state
 	int hits = 0;
@@ -82,18 +82,18 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 		result.MakeMove(move);
 
 		// Print the board in debug mode
-		/* if (DEBUG) { */
-		/* 	cout << "----------------------------------------" << endl; */
-		/* 	string curr = player == SENTE ? "Sente" : "Gote"; */
-		/* 	cout << "Player: " << curr << endl; */
-		/* 	cout << "Starting position:" << endl; */
-		/* 	s.EasyBoardPrint(); */
-		/* 	cout << "Looking at first available move: "; */
-		/* 	printMove(move); */
-		/* 	cout << "Result:" << endl; */
-		/* 	result.EasyBoardPrint(); */
-		/* 	cout << endl; */
-		/* } */
+		if (DEBUG) {
+			cout << "----------------------------------------" << endl;
+			string curr = player == SENTE ? "Sente" : "Gote";
+			cout << "Player: " << curr << endl;
+			cout << "Starting position:" << endl;
+			s.EasyBoardPrint();
+			cout << "Looking at first available move: ";
+			printMove(move);
+			cout << "Result:" << endl;
+			result.EasyBoardPrint();
+			cout << endl;
+		}
 
 		// Key used for the transposition table of {pos, featureVector}
 		vector<unsigned char> result_state = result.SaveGame();
@@ -115,14 +115,14 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 		int score = heuristic.evaluate_feature_vec(fV, weights);
 
 		// Print the raw feature vector in debug mode
-		/* if (DEBUG) { */
-		/* 	print_vec(fV); */
-		/* 	cout << "Score: " << score << endl; */
-		/* 	cout << endl; */
+		if (DEBUG) {
+			print_vec(fV);
+			cout << "Score: " << score << endl;
+			cout << endl;
 
-		/* 	// Break from the loop after looking at one move */
-		/* 	/1* break; *1/ */
-		/* } */
+			// Break from the loop after looking at one move
+			/* break; */
+		}
 
 
 
@@ -291,14 +291,15 @@ int main() {
     // Used if making featuresTests
 
 		OrganismEvaluator evaluator;
-		evaluator.set_mode("train_drops");
+		/* evaluator.set_mode("train_drops"); */
+		evaluator.set_mode("train");
 
-		evaluator.set_num_eval(10);
-    /* vector<int> weights(evaluator.get_num_features(), 1); */
+		evaluator.set_num_eval(5);
+    vector<int> weights(evaluator.get_num_features(), 1);
 
-		vector<int> weights = {3039, 505, 2062, 1841, 3139, 3709, 3700, 1471, 1965, 3178, 1902, 214, 2798,
-			1459, 2791, 1095, 2624, 3195, 3935, 1339, 67, 340, 301, 49, 1002, 14, 17, 36, 57, 1, 13, 14, 5,
-			48, 11, 52, 19, 42, 8, 18, 9, 12, 36, 45, 63, 26, 6, 19, 100};
+		/* vector<int> weights = {3039, 505, 2062, 1841, 3139, 3709, 3700, 1471, 1965, 3178, 1902, 214, 2798, */
+		/* 	1459, 2791, 1095, 2624, 3195, 3935, 1339, 67, 340, 301, 49, 1002, 14, 17, 36, 57, 1, 13, 14, 5, */
+		/* 	48, 11, 52, 19, 42, 8, 18, 9, 12, 36, 45, 63, 26, 6, 19, 100}; */
 
 		evaluator.evaluate_organism(weights);
 		for (auto& e : evaluator.get_evaluation_stats()) {

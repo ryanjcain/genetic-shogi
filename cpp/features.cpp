@@ -163,22 +163,35 @@ ShogiFeatures::ShogiFeatures(int player) {
     group_promotions = false;
     in_hand_bonus = true;
     link_material = true;
-
+    use_set_king_attack_weight = false;
+    
     // Default initialize the feature vector
     init_features();
 
-    n_features = features.size();
+    // Used by the genetic algorithm to inititialize chromosome length
+    n_features = features.size(); 
 }
 
 
-void ShogiFeatures::add_feature(string name, bool major, string link="") {
+void ShogiFeatures::add_feature(string name, bool major, string link="", bool enemy=false) {
+
+    if (enemy) {
+        enemy_features[name] = 0;
+        enemy_feature_order.push_back(name);
+        return;
+    }
+    
     features[name] = 0;
     n_major_features += major ? 1 : 0;
     feature_order.push_back(name);
 
     // Link the feature to the other
     if (!link.empty()) {
-        if (link == "PAWN_VALUE") {
+        if (link == "KING_ATTACK") {
+            // Set the index of the link to itself
+            feature_links[name] = feature_order.size() - 1;
+        }
+        else if (link == "PAWN_VALUE") {
             /* feature_links[name] = -1; */
         } else {
             // Otherwise add the link to the other feature
@@ -230,10 +243,10 @@ void ShogiFeatures::init_features() {
     }
 
     // Other major features
-    add_feature("PLAYER_KING_THREAT_PENALTY", true);
+    /* add_feature("PLAYER_KING_THREAT_PENALTY", true); */
     add_feature("BISHOP_MOBILITY", true);
     add_feature("ROOK_MOBILITY", true);
-    add_feature("ENEMY_KING_ATTACKS", true);
+    /* add_feature("ENEMY_KING_ATTACKS", true); */
 
     /* add_feature("ENEMY_KING_ATTACKS_SAFE", false); */
     add_feature("BISHOP_HEAD_PROTECTED", false);
@@ -259,53 +272,220 @@ void ShogiFeatures::init_features() {
     add_feature("ROOK_SEMI_OPEN_FILE", false);
     add_feature("BLOCKED_FLOW_SAFE", false);
     add_feature("AGGRESSION_BALANCE", false);
-    add_feature("TOTAL_ATTACKING", false);
+    /* add_feature("TOTAL_ATTACKING", false); */
     /* add_feature("DISTANCE_TO_KINGS", false); */
 
 
-    if (king_dist_diff) {
-        add_feature("DTK_DIFF_PAWN", false);
-        add_feature("DTK_DIFF_LANCE", false);
-        add_feature("DTK_DIFF_KNIGHT", false);
-        add_feature("DTK_DIFF_SILVER", false);
-        add_feature("DTK_DIFF_BISHOP", false);
-        add_feature("DTK_DIFF_ROOK", false);
-        add_feature("DTK_DIFF_GOLD", false);
-        add_feature("DTK_DIFF_PROMOTED_PAWN", false);
-        add_feature("DTK_DIFF_PROMOTED_LANCE", false);
-        add_feature("DTK_DIFF_PROMOTED_KNIGHT", false);
-        add_feature("DTK_DIFF_PROMOTED_SILVER", false);
-        add_feature("DTK_DIFF_PROMOTED_BISHOP", false);
-        add_feature("DTK_DIFF_PROMOTED_ROOK", false);
+    /* if (king_dist_diff) { */
+    /*     add_feature("DTK_DIFF_PAWN", false); */
+    /*     add_feature("DTK_DIFF_LANCE", false); */
+    /*     add_feature("DTK_DIFF_KNIGHT", false); */
+    /*     add_feature("DTK_DIFF_SILVER", false); */
+    /*     add_feature("DTK_DIFF_BISHOP", false); */
+    /*     add_feature("DTK_DIFF_ROOK", false); */
+    /*     add_feature("DTK_DIFF_GOLD", false); */
+    /*     add_feature("DTK_DIFF_PROMOTED_PAWN", false); */
+    /*     add_feature("DTK_DIFF_PROMOTED_LANCE", false); */
+    /*     add_feature("DTK_DIFF_PROMOTED_KNIGHT", false); */
+    /*     add_feature("DTK_DIFF_PROMOTED_SILVER", false); */
+    /*     add_feature("DTK_DIFF_PROMOTED_BISHOP", false); */
+    /*     add_feature("DTK_DIFF_PROMOTED_ROOK", false); */
+    /* } else { */
+    /*     // Try distance to kings for individual pieces */
+    /*     add_feature("DTK_FRIENDLY_PAWN", false); */
+    /*     add_feature("DTK_ENEMY_PAWN", false); */
+    /*     add_feature("DTK_FRIENDLY_LANCE", false); */
+    /*     add_feature("DTK_ENEMY_LANCE", false); */
+    /*     add_feature("DTK_FRIENDLY_KNIGHT", false); */
+    /*     add_feature("DTK_ENEMY_KNIGHT", false); */
+    /*     add_feature("DTK_FRIENDLY_SILVER", false); */
+    /*     add_feature("DTK_ENEMY_SILVER", false); */
+    /*     add_feature("DTK_FRIENDLY_BISHOP", false); */
+    /*     add_feature("DTK_ENEMY_BISHOP", false); */
+    /*     add_feature("DTK_FRIENDLY_ROOK", false); */
+    /*     add_feature("DTK_ENEMY_ROOK", false); */
+    /*     add_feature("DTK_FRIENDLY_GOLD", false); */
+    /*     add_feature("DTK_ENEMY_GOLD", false); */
+    /*     add_feature("DTK_FRIENDLY_PROMOTED_PAWN", false); */
+    /*     add_feature("DTK_ENEMY_PROMOTED_PAWN", false); */
+    /*     add_feature("DTK_FRIENDLY_PROMOTED_LANCE", false); */
+    /*     add_feature("DTK_ENEMY_PROMOTED_LANCE", false); */
+    /*     add_feature("DTK_FRIENDLY_PROMOTED_KNIGHT", false); */
+    /*     add_feature("DTK_ENEMY_PROMOTED_KNIGHT", false); */
+    /*     add_feature("DTK_FRIENDLY_PROMOTED_SILVER", false); */
+    /*     add_feature("DTK_ENEMY_PROMOTED_SILVER", false); */
+    /*     add_feature("DTK_FRIENDLY_PROMOTED_BISHOP", false); */
+    /*     add_feature("DTK_ENEMY_PROMOTED_BISHOP", false); */
+    /*     add_feature("DTK_FRIENDLY_PROMOTED_ROOK", false); */
+    /*     add_feature("DTK_ENEMY_PROMOTED_ROOK", false); */
+    /* } */
+
+    // Features for new king evaluation heuristic
+    // NOTE : move to top because these need to be at least 100
+    add_feature("NO_KING_ATTACKERS_1", false, "KING_ATTACK");
+    add_feature("NO_KING_ATTACKERS_2", false, "KING_ATTACK");
+    add_feature("NO_KING_ATTACKERS_3", false, "KING_ATTACK");
+    add_feature("NO_KING_ATTACKERS_4", false, "KING_ATTACK");
+    add_feature("NO_KING_ATTACKERS_5", false, "KING_ATTACK");
+    add_feature("NO_KING_ATTACKERS_6", false, "KING_ATTACK");
+    add_feature("NO_KING_ATTACKERS_7", false, "KING_ATTACK");
+
+    add_feature("PAWN_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("LANCE_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("KNIGHT_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("SILVER_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("BISHOP_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("ROOK_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("GOLD_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("PROMOTED_PAWN_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("PROMOTED_LANCE_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("PROMOTED_KNIGHT_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("PROMOTED_SILVER_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("PROMOTED_BISHOP_ATTACK_VALUE", false, "KING_ATTACK");
+    add_feature("PROMOTED_ROOK_ATTACK_VALUE", false, "KING_ATTACK");
+
+    // FIXME : This is really bad programming
+    
+    // These are the counts for the enemy player
+    add_feature("NO_KING_ATTACKERS_1_ENEMY", false, "KING_ATTACK", true);
+    add_feature("NO_KING_ATTACKERS_2_ENEMY", false, "KING_ATTACK", true);
+    add_feature("NO_KING_ATTACKERS_3_ENEMY", false, "KING_ATTACK", true);
+    add_feature("NO_KING_ATTACKERS_4_ENEMY", false, "KING_ATTACK", true);
+    add_feature("NO_KING_ATTACKERS_5_ENEMY", false, "KING_ATTACK", true);
+    add_feature("NO_KING_ATTACKERS_6_ENEMY", false, "KING_ATTACK", true);
+    add_feature("NO_KING_ATTACKERS_7_ENEMY", false, "KING_ATTACK", true);
+
+    add_feature("PAWN_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("LANCE_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("KNIGHT_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("SILVER_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("BISHOP_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("ROOK_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("GOLD_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("PROMOTED_PAWN_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("PROMOTED_LANCE_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("PROMOTED_KNIGHT_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("PROMOTED_SILVER_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("PROMOTED_BISHOP_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+    add_feature("PROMOTED_ROOK_ATTACK_VALUE_ENEMY", false, "KING_ATTACK", true);
+
+}
+
+void ShogiFeatures::king_attack_zone(Shogi& s) {
+    int opponent = (player ^ 1);
+
+    // Friendly pieecs attacking enemy king
+    auto friendly_counts = count_king_attacks(s, player);
+    // Opponnent pieces attacking friendly (player's) king
+    auto opponent_counts = count_king_attacks(s, opponent);
+
+
+    int total_attacks_on_enemy_king = friendly_counts.first;
+    int total_attacks_on_friendly_king = opponent_counts.first;
+
+    if (total_attacks_on_enemy_king > 7) {
+        features["NO_KING_ATTACKERS_7"] = 7;
+    } else if (total_attacks_on_friendly_king > 7) {
+        features["NO_KING_ATTACKERS_7_ENEMY"] = 7;
     } else {
-        // Try distance to kings for individual pieces
-        add_feature("DTK_FRIENDLY_PAWN", false);
-        add_feature("DTK_ENEMY_PAWN", false);
-        add_feature("DTK_FRIENDLY_LANCE", false);
-        add_feature("DTK_ENEMY_LANCE", false);
-        add_feature("DTK_FRIENDLY_KNIGHT", false);
-        add_feature("DTK_ENEMY_KNIGHT", false);
-        add_feature("DTK_FRIENDLY_SILVER", false);
-        add_feature("DTK_ENEMY_SILVER", false);
-        add_feature("DTK_FRIENDLY_BISHOP", false);
-        add_feature("DTK_ENEMY_BISHOP", false);
-        add_feature("DTK_FRIENDLY_ROOK", false);
-        add_feature("DTK_ENEMY_ROOK", false);
-        add_feature("DTK_FRIENDLY_GOLD", false);
-        add_feature("DTK_ENEMY_GOLD", false);
-        add_feature("DTK_FRIENDLY_PROMOTED_PAWN", false);
-        add_feature("DTK_ENEMY_PROMOTED_PAWN", false);
-        add_feature("DTK_FRIENDLY_PROMOTED_LANCE", false);
-        add_feature("DTK_ENEMY_PROMOTED_LANCE", false);
-        add_feature("DTK_FRIENDLY_PROMOTED_KNIGHT", false);
-        add_feature("DTK_ENEMY_PROMOTED_KNIGHT", false);
-        add_feature("DTK_FRIENDLY_PROMOTED_SILVER", false);
-        add_feature("DTK_ENEMY_PROMOTED_SILVER", false);
-        add_feature("DTK_FRIENDLY_PROMOTED_BISHOP", false);
-        add_feature("DTK_ENEMY_PROMOTED_BISHOP", false);
-        add_feature("DTK_FRIENDLY_PROMOTED_ROOK", false);
-        add_feature("DTK_ENEMY_PROMOTED_ROOK", false);
+        for (int i = 1; i < 8; i++) {
+            string friendly_key = "NO_KING_ATTACKERS_" + to_string(i);
+            string enemy_key = friendly_key + "_ENEMY";
+
+            features[friendly_key] = i == total_attacks_on_enemy_king ? i : 0;
+            enemy_features[enemy_key] = i == total_attacks_on_friendly_king ? i : 0;
+        }
     }
+
+    // Add the actual count that each specific piece type that is attacking
+    for (auto& entry : friendly_counts.second) {
+        string piece = entry.first;
+        string feat_name = piece_strings_to_full[piece] + "_ATTACK_VALUE";
+        features[feat_name] = entry.second;
+    }
+    // Do the same for the opponent attacks on friendly king
+    for (auto& entry : opponent_counts.second) {
+        string piece = entry.first;
+        string feat_name = piece_strings_to_full[piece] + "_ATTACK_VALUE_ENEMY";
+        enemy_features[feat_name] = entry.second;
+    }
+}
+
+// Helper function to get the king attacks on either side
+pair<int, map<string, int>> ShogiFeatures::count_king_attacks(Shogi& s, int side) {
+    int enemy_king = (side == SENTE) ?
+                    s.gomaPos[s.GOTEKINGNUM] :
+                    s.gomaPos[s.SENTEKINGNUM];
+    
+    // Keep track of the number of attacks of a give piece type
+    map<string, int> piece_attack_counts = {
+        {"p", 0}, {"l", 0}, {"n", 0}, {"s", 0}, {"g", 0}, {"b", 0}, {"r", 0},
+        {"+p", 0}, {"+l", 0}, {"+n", 0}, {"+s", 0}, {"+b", 0}, {"+r", 0} };
+
+    // Attacking positions have already seen to keep proper count of unique attacking pieces
+    map<int, bool> seen;
+    int total_attacking = 0;
+    
+    // Get the squares around and including the king that @side is attacking
+    vector<int> king_zone = find_adjacent(enemy_king);
+    king_zone.push_back(enemy_king);
+
+    // Look at all of the squares in the king zone
+    for (int pos : king_zone) {
+        // In case that the king is on an edge or corner
+        if (pos == -1) continue;
+
+        // Look at all of the attakcs for a single square in the king zone
+        for (int piece : s.boardFixedAttacking[side][pos]) {
+            int attacker = watchupAttacker(piece);
+            int gomakind = s.gomaKind[attacker];
+            int id = gomakindID(gomakind);
+            int upgrade = gomakindUP(gomakind);
+            int attacker_pos = s.gomaPos[attacker];
+
+            // Get string representation and add to appropriate count map and piece position cache
+            string piece_str = piece_map[{id, upgrade}];
+
+            if (gomakindChesser(gomakind) != side) {
+                string err = "Things not working as you think for attackers";
+                throw runtime_error(err);
+            }
+
+            piece_attack_counts[piece_str] += 1;
+
+            // If this is a new attacking piece, increase total count
+            if (!seen.count(attacker_pos)) {
+                total_attacking += 1;
+                seen[attacker_pos] = true;
+            }
+        }
+        // Look at all of the flow attacks for a single square in the king zone
+        for (int piece : s.boardFlowAttacking[side][pos]) {
+            int attacker = watchupAttacker(piece);
+            int gomakind = s.gomaKind[attacker];
+            int id = gomakindID(gomakind);
+            int upgrade = gomakindUP(gomakind);
+            int attacker_pos = s.gomaPos[attacker];
+
+            // Get string representation and add to appropriate count map and piece position cache
+            string piece_str = piece_map[{id, upgrade}];
+
+            if (gomakindChesser(gomakind) != side) {
+                string err = "Things not working as you think for attackers";
+                throw runtime_error(err);
+            }
+
+            piece_attack_counts[piece_str] += 1;
+
+            // If this is a new attacking piece, increase total count
+            if (!seen.count(attacker_pos)) {
+                total_attacking += 1;
+                seen[attacker_pos] = true;
+            }
+        }
+    }
+    
+    return {total_attacking, piece_attack_counts};
 }
 
 void ShogiFeatures::load_features(Shogi& s) {
@@ -336,6 +516,8 @@ void ShogiFeatures::load_features(Shogi& s) {
     king_attack(s);
     total_attacking(s);
     distance_to_kings(s);
+
+    king_attack_zone(s);
 }
 
 vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
@@ -355,11 +537,17 @@ vector<int> ShogiFeatures::generate_feature_vec_raw(Shogi s) {
     for (auto& name : feature_order) {
         feature_vec.push_back(features[name]);
     }
+
+    // Also add the invisible enemy feature counts in order to work with caching
+    for (auto& name : enemy_feature_order) {
+        feature_vec.push_back(enemy_features[name]);
+    }
+
     return feature_vec;
 }
 
 int ShogiFeatures::evaluate_feature_vec(vector<int>& fV, vector<int>& weights) {
-    if (fV.size() > n_features or weights.size() > n_features or fV.size() != weights.size()) {
+    if (fV.size() - enemy_features.size() > n_features or weights.size() > n_features) {
         string error = "Expected fV and weights to be size of N features";
         throw invalid_argument(error);
     }
@@ -374,7 +562,13 @@ int ShogiFeatures::evaluate_feature_vec(vector<int>& fV, vector<int>& weights) {
     for (int i = 0; i < n_features; i++) {
         // See if the feature is linked to another weight
         if (feature_links.count(feature_order[i])) {
-            int linked_index = feature_links[feature_order[i]];
+            string link = feature_order[i];
+
+            int linked_index = feature_links[link];
+
+            // Skip over the special king attack feature as calculation is different
+            if (linked_index == i) continue; 
+
             /* int linked_weight = linked_index == -1 ? pawn_value : weights[linked_index]; */
             int linked_weight = weights[linked_index];
             score += fV[i] * (linked_weight + weights[i]);
@@ -383,7 +577,67 @@ int ShogiFeatures::evaluate_feature_vec(vector<int>& fV, vector<int>& weights) {
         }
     }
 
-    return score;
+    // Offset for the opponent feature counts at end of feature vector
+    int offset = enemy_features.size();
+
+    double attack_weight_friendly = 0, attack_weight_enemy = 0;
+    for (int i = 1; i < 8; i++) {
+        string friendly_key = "NO_KING_ATTACKERS_" + to_string(i);
+        string opponent_key = friendly_key + "_ENEMY";
+
+        int friendly_index = feature_links[friendly_key];
+        int opponent_index = friendly_index + offset;
+
+        int friendly_count = fV[friendly_index];
+        int opponent_count = fV[opponent_index];
+
+        if (friendly_count) {
+            assert(attack_weight_friendly == 0);
+            if (use_set_king_attack_weight) {
+                attack_weight_friendly = set_king_attack_weights[friendly_index];
+            } else {
+                attack_weight_friendly = weights[friendly_index];
+            }
+        }
+
+        // Weight is at the same index in weight array they both use same weight
+        if (opponent_count) {
+            assert(attack_weight_enemy == 0);
+            if (use_set_king_attack_weight) {
+                attack_weight_enemy = set_king_attack_weights[friendly_index];
+            } else {
+                attack_weight_enemy = weights[friendly_index];
+            }
+        }
+    }
+
+    attack_weight_friendly = attack_weight_friendly / king_attack_discount;
+    attack_weight_enemy = attack_weight_enemy / king_attack_discount;
+
+    // Now calcualte the sum of attack weight * number of squares that piece type is attacking
+    int value_of_attacks_player = 0, value_of_attacks_enemy = 0;
+    for (auto& entry : piece_strings_to_full) {
+        string player_key = entry.second + "_ATTACK_VALUE";
+        string enemy_key = entry.second + "_ATTACK_VALUE_ENEMY";
+
+        int weight = weights[feature_links[player_key]];
+        
+        int friendly_index = feature_links[player_key];
+        int opponent_index = friendly_index + offset;
+
+        int friendly_count = fV[friendly_index];
+        int opponent_count = fV[opponent_index];
+
+        value_of_attacks_player += weight * friendly_count;
+        value_of_attacks_enemy += weight * opponent_count;
+    }
+
+    double friendly_score = (double) value_of_attacks_player * attack_weight_friendly;
+    double opponent_score = (double) value_of_attacks_enemy * attack_weight_enemy;
+
+    int diff = (int)((double)(friendly_score - opponent_score));
+
+    return score + diff;
 }
 
 // Read evolution.py to see explenation of these features
@@ -865,8 +1119,7 @@ void ShogiFeatures::reclining_silver(Shogi& s) {
     features["RECLINING_SILVER"] = reclining;
 }
 
-void ShogiFeatures::claimed_files(Shogi& s) {
-    vector<int> pawns = piece_pos["p"].first;
+void ShogiFeatures::claimed_files(Shogi& s) { vector<int> pawns = piece_pos["p"].first;
 
     int claimed = 0;
     for (int pos : fifth_rank) {
@@ -988,8 +1241,7 @@ void ShogiFeatures::rook_open_semi_open_file(Shogi& s) {
     features["ROOK_SEMI_OPEN_FILE"] = semi_open;
 }
 
-void ShogiFeatures::bishop_mobility(Shogi& s) {
-    vector<int> squares = find_flow_moves("b", s);
+void ShogiFeatures::bishop_mobility(Shogi& s) { vector<int> squares = find_flow_moves("b", s);
     int safe = count_safe_squares(squares, s);
     features["BISHOP_MOBILITY"] = safe;
 }

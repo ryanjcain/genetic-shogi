@@ -12,10 +12,10 @@ N_TEST = 5000
 POP_SIZE = 100
 CXPB = 0.75
 MUTPB = 0.005
-N_GEN = 5
+N_GEN = 200
 
 # Bit widths to be used for ga
-BIT_WIDTH_SMALL = 6
+BIT_WIDTH_SMALL = 7
 BIT_WIDTH_WIDE = 12  # Paper used 16 for pieces
 
 LOG_FILE = "results.txt"
