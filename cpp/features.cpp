@@ -386,7 +386,7 @@ void ShogiFeatures::king_attack_zone(Shogi& s) {
     if (total_attacks_on_enemy_king > 7) {
         features["NO_KING_ATTACKERS_7"] = 7;
     } else if (total_attacks_on_friendly_king > 7) {
-        features["NO_KING_ATTACKERS_7_ENEMY"] = 7;
+        enemy_features["NO_KING_ATTACKERS_7_ENEMY"] = 7;
     } else {
         for (int i = 1; i < 8; i++) {
             string friendly_key = "NO_KING_ATTACKERS_" + to_string(i);
@@ -517,6 +517,8 @@ void ShogiFeatures::load_features(Shogi& s) {
     total_attacking(s);
     distance_to_kings(s);
 
+
+
     king_attack_zone(s);
 }
 
@@ -578,21 +580,28 @@ int ShogiFeatures::evaluate_feature_vec(vector<int>& fV, vector<int>& weights) {
     }
 
     // Offset for the opponent feature counts at end of feature vector
-    int offset = enemy_features.size();
+    int offset = weights.size();
 
-    double attack_weight_friendly = 0, attack_weight_enemy = 0;
+    double attack_weight_friendly = 0, attack_weight_enemy = 0, attack_weight_start = 0;
     for (int i = 1; i < 8; i++) {
         string friendly_key = "NO_KING_ATTACKERS_" + to_string(i);
         string opponent_key = friendly_key + "_ENEMY";
 
         int friendly_index = feature_links[friendly_key];
-        int opponent_index = friendly_index + offset;
+        attack_weight_start += i == 1 ? friendly_index : 0;
+
+        int opponent_index = (friendly_index - attack_weight_start) + offset;
 
         int friendly_count = fV[friendly_index];
         int opponent_count = fV[opponent_index];
 
         if (friendly_count) {
-            assert(attack_weight_friendly == 0);
+            /* assert(attack_weight_friendly == 0); */
+            if (attack_weight_friendly != 0) {
+                string error = "Attack weight should only be set once.";
+                error += "\nSet to " + to_string(attack_weight_friendly) + " but another count is: " + to_string(friendly_count);
+                throw runtime_error(error);
+            }
             if (use_set_king_attack_weight) {
                 attack_weight_friendly = set_king_attack_weights[friendly_index];
             } else {
@@ -602,7 +611,12 @@ int ShogiFeatures::evaluate_feature_vec(vector<int>& fV, vector<int>& weights) {
 
         // Weight is at the same index in weight array they both use same weight
         if (opponent_count) {
-            assert(attack_weight_enemy == 0);
+            if (attack_weight_enemy != 0) {
+                string error = "Attack weight should only be set once.";
+                error += "\nSet to " + to_string(attack_weight_enemy) + " but another count is: " + to_string(opponent_count);
+                throw runtime_error(error);
+            }
+            /* assert(attack_weight_enemy == 0); */
             if (use_set_king_attack_weight) {
                 attack_weight_enemy = set_king_attack_weights[friendly_index];
             } else {
@@ -1241,15 +1255,20 @@ void ShogiFeatures::rook_open_semi_open_file(Shogi& s) {
     features["ROOK_SEMI_OPEN_FILE"] = semi_open;
 }
 
-void ShogiFeatures::bishop_mobility(Shogi& s) { vector<int> squares = find_flow_moves("b", s);
-    int safe = count_safe_squares(squares, s);
-    features["BISHOP_MOBILITY"] = safe;
+void ShogiFeatures::bishop_mobility(Shogi& s) {
+    vector<int> squares_player = find_flow_moves("b", s, player);
+    vector<int> squares_oppn = find_flow_moves("b", s, player ^ 1);
+    int safe_player = count_safe_squares(squares_player, s, player);
+    int safe_oppn = count_safe_squares(squares_oppn, s, player ^ 1);
+    features["BISHOP_MOBILITY"] = safe_player - safe_oppn;
 }
 
 void ShogiFeatures::rook_mobility(Shogi& s) {
-    vector<int> squares = find_flow_moves("r", s);
-    int safe = count_safe_squares(squares, s);
-    features["ROOK_MOBILITY"] = safe;
+    vector<int> squares_player = find_flow_moves("r", s, player);
+    vector<int> squares_oppn = find_flow_moves("r", s, player ^ 1);
+    int safe_player = count_safe_squares(squares_player, s, player);
+    int safe_oppn = count_safe_squares(squares_oppn, s, player ^ 1);
+    features["ROOK_MOBILITY"] = safe_player - safe_player;
 }
 
 void ShogiFeatures::blocked_flow(Shogi& s) {
@@ -1523,8 +1542,8 @@ void ShogiFeatures::print_piece_map() {
     }
 }
 
-int ShogiFeatures::count_safe_squares(vector<int> squares, Shogi& s)  {
-    int opp = player ^ 1;
+int ShogiFeatures::count_safe_squares(vector<int> squares, Shogi& s, int side)  {
+    int opp = side ^ 1;
     vector<int> safe = {};
     for (int pos : squares) {
         if (!s.boardFixedAttacking[opp][pos].size() and !s.boardFlowAttacking[opp][pos].size()) {
@@ -1535,11 +1554,18 @@ int ShogiFeatures::count_safe_squares(vector<int> squares, Shogi& s)  {
     return safe.size();
 }
 
-vector<int> ShogiFeatures::find_flow_moves(string piece_type, Shogi& s) {
+vector<int> ShogiFeatures::find_flow_moves(string piece_type, Shogi& s, int side) {
 
     string up_piece = "+" + piece_type;
-    vector<int> pieces = piece_pos[piece_type].first;
-    pieces.insert(pieces.end(), piece_pos[up_piece].first.begin(), piece_pos[up_piece].first.end());
+
+    vector<int> pieces;
+    if (side == player) {
+        vector<int> pieces = piece_pos[piece_type].first;
+        pieces.insert(pieces.end(), piece_pos[up_piece].first.begin(), piece_pos[up_piece].first.end());
+    } else {
+        vector<int> pieces = piece_pos[piece_type].second;
+        pieces.insert(pieces.end(), piece_pos[up_piece].second.begin(), piece_pos[up_piece].second.end());
+    }
 
     vector<int> squares = {};
     for (int pos : pieces) {

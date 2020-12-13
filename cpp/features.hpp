@@ -137,8 +137,8 @@ class ShogiFeatures {
         // Helper Functions
         bool in_bounds(int pos) { return (0 <= pos and pos <= 80); }
         int count_adj_pairs(string piece_type, Shogi& s);
-        vector<int> find_flow_moves(string piece_type, Shogi& s);
-        int count_safe_squares(vector<int> squares, Shogi& s);
+        vector<int> find_flow_moves(string piece_type, Shogi& s, int side);
+        int count_safe_squares(vector<int> squares, Shogi& s, int side);
         int distance(int posA, int posB);
 
         vector<int> generate_feature_vec_raw(Shogi s);

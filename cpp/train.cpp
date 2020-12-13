@@ -294,7 +294,7 @@ int main() {
 		/* evaluator.set_mode("train_drops"); */
 		evaluator.set_mode("train");
 
-		evaluator.set_num_eval(5);
+		/* evaluator.set_num_eval(5); */
     vector<int> weights(evaluator.get_num_features(), 1);
 
 		/* vector<int> weights = {3039, 505, 2062, 1841, 3139, 3709, 3700, 1471, 1965, 3178, 1902, 214, 2798, */
