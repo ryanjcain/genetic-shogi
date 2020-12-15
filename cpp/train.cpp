@@ -140,20 +140,69 @@ int OrganismEvaluator::select_move(string board, vector<int> weights, int& pos) 
 
 void OrganismEvaluator::init_stats() {
 	stats["eval_time_ms"] = 0;
-	stats["total_positions"] = 0;
+	stats["total_positions_evaluated"] = 0;
 	stats["total_correct"] = 0;
-	stats["upgrade_total"] = 0;
-	stats["upgrade_correct"] = 0;
-	stats["drop_total"] = 0;
-	stats["drop_correct"] = 0;
+	stats["total_positions"] = 0;
+
+	stats["gm_drop_total"] = 0;
+	stats["gm_up_total"] = 0;
+	stats["h_drop_total"] = 0;
+	stats["h_missed_drops"] = 0;
+	stats["h_missed_ups"] = 0;
+	stats["h_up_total"] = 0;
+
+	// Stats for upgrades
+	stats["h_up_same_square_same_piece"] = 0;
+	stats["h_up_same_square_diff_piece"] = 0;
+	stats["h_up_diff_square_diff_piece"] = 0;
+	stats["h_up_diff_square_same_piece"] = 0;
+
+	// Stats for drops
+	stats["h_drop_same_square_same_piece"] = 0;
+	stats["h_drop_same_square_diff_piece"] = 0;
+	stats["h_drop_diff_square_diff_piece"] = 0;
+	stats["h_drop_diff_square_same_piece"] = 0;
+	
+	// Stats for regular moves
+	stats["h_drop_when_gm_normal"] = 0;
+	stats["h_up_when_gm_normal"] = 0;
+	stats["h_move_same_square_same_piece"] = 0;
+	stats["h_move_same_square_diff_piece"] = 0;
+	stats["h_move_diff_square_diff_piece"] = 0;
+	stats["h_move_diff_square_same_piece"] = 0;
+	stats["h_drop_same_square_as_gm_normal"] = 0;
+	stats["h_up_when_gm_normal_same_square_same_piece"] = 0;
+	stats["h_up_when_gm_normal_same_square_diff_piece"] = 0;
+	stats["h_up_when_gm_normal_diff_square_same_piece"] = 0;
+	stats["h_up_when_gm_normal_diff_square_diff_piece"] = 0;
 }
 
 void OrganismEvaluator::log_stats(string board, int move, int grandmaster_move) {
-	if (log) {
-			// Get some stats about the move
-			stats["upgrade_total"] += UPGRADED == moveUpgrade(grandmaster_move) ? 1 : 0;
-			stats["drop_total"] += PLAYING == movePlaying(grandmaster_move) ? 1 : 0;
+	
+	// Initialize board in order to check for piece correctness etc
+	Shogi s = load_game(board);
+	
+	// Resulting board of grand master move move
+	Shogi gm = s;
+	gm.MakeMove(grandmaster_move);
 
+	// Resulting board of heuristic move
+	Shogi h = s;
+	h.MakeMove(move);
+
+	int h_new_pos = moveNewpos(move);
+	int gm_new_pos = moveNewpos(grandmaster_move);
+	int h_pre_pos = movePrepos(move);
+	int gm_pre_pos = movePrepos(grandmaster_move);
+	int h_goma_kind = h.gomaKind[h.board[h_new_pos]];
+	int gm_goma_kind = gm.gomaKind[gm.board[gm_new_pos]];
+
+	// Type of piece that was moved, ie. pawn, promoted bishop, etc
+	int h_piece_type = gomakindEID(h_goma_kind);
+	int gm_piece_type = gomakindEID(gm_goma_kind);
+
+
+	if (log) {
 			/* // Print out the board and the drop move if in debug mode */
 			/* if (DEBUG and mode == train_drops) { */
 			/* 	Shogi s = load_game(board); */
@@ -168,11 +217,112 @@ void OrganismEvaluator::log_stats(string board, int move, int grandmaster_move) 
 			/* 	printMove(move); */
 			/* } */
 
-			// Add to stats if move was correctly guessed
-			if (move == grandmaster_move) {
-					stats["upgrade_correct"] += UPGRADED == moveUpgrade(move) ? 1 : 0;
-					stats["drop_correct"] += PLAYING == movePlaying(move) ? 1 : 0;
+			// See if grandmaster played a drop move
+			if (PLAYING == movePlaying(grandmaster_move)) {
+				stats["gm_drop_total"] += 1;
+
+				if (PLAYING == movePlaying(move)) {
+					stats["h_drop_total"] += 1;
+
+					// Heuristic guessed same square and same piece
+					if (move == grandmaster_move) {
+						stats["h_drop_same_square_same_piece"] += 1;
+					} 
+
+					// Heuristic also played a drop move on the same square, but different piece
+					else if (h_new_pos == gm_new_pos) {
+						stats["h_drop_same_square_diff_piece"] += 1;
+					}
+
+					// Heuristic played a drop of same piece on different square
+					else if (h_piece_type == gm_piece_type) {
+						stats["h_drop_diff_square_same_piece"] += 1;
+					}
+
+					// Heuristic played a drop of different piece on different square
+					else {
+						stats["h_drop_diff_square_diff_piece"] += 1;
+					}
+				} 
+
+				// Otherwise heuristic didnt drop when it should have
+				else {
+					stats["h_missed_drops"] += 1;
+				}
 			}
+
+			// See if grandmaster played a upgrade move
+			else if (UPGRADED == moveUpgrade(grandmaster_move)) {
+				stats["gm_up_total"] += 1;
+
+				if (UPGRADED == moveUpgrade(move)) {
+					stats["h_up_total"] += 1;
+
+					if (move == grandmaster_move) {
+						stats["h_up_same_square_same_piece"] += 1;
+					}
+
+					// Heuristic moved and upgraded the same piece, but ended on diff square
+					else if (h_pre_pos == gm_pre_pos) {
+						stats["h_up_diff_square_same_piece"] += 1;
+					}
+					
+					else if (h_new_pos == gm_new_pos) {
+						stats["h_up_same_square_diff_piece"] += 1;
+					}
+
+					else {
+						stats["h_up_diff_square_diff_piece"] += 1;
+					}
+				}
+
+				// Otherwise heuristic missed an upgrade when it should have
+				else {
+					stats["h_missed_ups"] += 1;
+				}
+			} 
+
+			// Otherwise it is just a regular move for gm
+			else {
+				if (move == grandmaster_move) {
+					stats["h_move_same_square_same_piece"] += 1;
+				}
+				// Heuristic dropped when grandmaster played regular move
+				else if (PLAYING == movePlaying(move)) {
+					stats["h_drop_when_gm_normal"] += 1;
+
+					if (h_new_pos == gm_new_pos) {
+						stats["h_drop_same_square_as_gm_normal"] += 1;
+					}
+				}
+				// Heuristic upgraded when grandmaster played regular move
+				else if (UPGRADED == moveUpgrade(move)) {
+					stats["h_up_when_gm_normal"] += 1;
+
+					// Heuristic made exact same move, but just chose to upgrade
+					if (h_pre_pos == gm_pre_pos and h_new_pos == gm_new_pos) {
+						stats["h_up_when_gm_normal_same_square_same_piece"] += 1;
+					} else if (h_pre_pos == gm_pre_pos) {
+						stats["h_up_when_gm_normal_diff_square_same_piece"] += 1;
+					} else if (h_new_pos == gm_new_pos) {
+						stats["h_up_when_gm_normal_same_square_diff_piece"] += 1;
+					} else {
+						stats["h_up_when_gm_normal_diff_square_diff_piece"] += 1;
+					}
+				}
+				else if (h_pre_pos == gm_pre_pos) {
+					stats["h_move_diff_square_same_piece"] += 1;
+				}
+				else if (h_new_pos == gm_new_pos) {
+					stats["h_move_same_square_diff_piece"] += 1;
+				}
+				else {
+					stats["h_move_diff_square_diff_piece"] += 1;
+				}
+			}
+	
+	// Other stats, just keep track of total n positions 
+	stats["total_positions"] += 1;
 	}
 }
 
@@ -273,7 +423,7 @@ int OrganismEvaluator::evaluate_organism(vector<int> weights) {
 		auto stop = high_resolution_clock::now();
 		auto duration = duration_cast<milliseconds>(stop - start);
 		stats["eval_time_ms"] = int(duration.count());
-		stats["total_positions"] = positions;
+		stats["total_positions_evaluated"] = positions;
 		stats["total_correct"] = correct;
 	}
 
@@ -293,12 +443,12 @@ int main() {
 		OrganismEvaluator evaluator;
 		evaluator.set_mode("train_drops");
 
-		evaluator.set_num_eval(10);
+		evaluator.set_num_eval(500);
     /* vector<int> weights(evaluator.get_num_features(), 1); */
 
-		vector<int> weights = {3039, 505, 2062, 1841, 3139, 3709, 3700, 1471, 1965, 3178, 1902, 214, 2798,
-			1459, 2791, 1095, 2624, 3195, 3935, 1339, 67, 340, 301, 49, 1002, 14, 17, 36, 57, 1, 13, 14, 5,
-			48, 11, 52, 19, 42, 8, 18, 9, 12, 36, 45, 63, 26, 6, 19, 100};
+		vector<int> weights = {100, 340, 209, 675, 525, 886, 787, 970, 297, 313, 366, 163, 45, 630, 596, 824, 649,
+			980, 382, 808, 227, 75, 33, 10, 39, 26, 31, 56, 9, 22, 25, 1, 61, 51, 59, 60, 10, 54, 58, 22, 28, 20, 49,
+			23, 7, 24, 5, 44, 44, 58, 42, 16, 38, 14, 42, 19, 6, 45, 22, 35, 26, 9, 13, 8, 8, 0, 31, 2, 10, 42, 16, 13, 42, 25};
 
 		evaluator.evaluate_organism(weights);
 		for (auto& e : evaluator.get_evaluation_stats()) {
