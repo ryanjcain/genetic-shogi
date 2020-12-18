@@ -43,7 +43,7 @@ class OrganismEvaluator {
 		const string train_drops = "train_drops";
 		vector<string> modes = {test_mode, train_mode, train_drops};
 		bool log;
-		void log_stats(string board, int move, int grandmaster_move);
+		void log_stats(string board, int move, int grandmaster_move, vector<int> weights);
 
 
 		map<string, int> stats;

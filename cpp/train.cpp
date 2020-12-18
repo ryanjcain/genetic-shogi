@@ -177,7 +177,7 @@ void OrganismEvaluator::init_stats() {
 	stats["h_up_when_gm_normal_diff_square_diff_piece"] = 0;
 }
 
-void OrganismEvaluator::log_stats(string board, int move, int grandmaster_move) {
+void OrganismEvaluator::log_stats(string board, int move, int grandmaster_move, vector<int> weights) {
 	
 	// Initialize board in order to check for piece correctness etc
 	Shogi s = load_game(board);
@@ -203,19 +203,26 @@ void OrganismEvaluator::log_stats(string board, int move, int grandmaster_move) 
 
 
 	if (log) {
-			/* // Print out the board and the drop move if in debug mode */
-			/* if (DEBUG and mode == train_drops) { */
-			/* 	Shogi s = load_game(board); */
-  			/* int player = (s.round % 2); */
-			/* 	string turn = player == SENTE ? "Sente" : "Gote"; */
+			/* /1* // Print out the board and the drop move if in debug mode *1/ */
+			if (DEBUG and mode == train_drops) {
+				vector<int> fv = heuristic.feature_vec_raw(gm);
+				int gm_score = heuristic.evaluate_feature_vec(fv, weights);
 
-			/* 	cout << "Grandmaster Drop Move for " << turn << endl; */
-			/* 	cout << "     "; */
-			/* 	printMove(grandmaster_move); */
-			/* 	cout << "     "; */
-			/* 	cout << "Heuristic chose:  "; */
-			/* 	printMove(move); */
-			/* } */
+				vector<int> fvH = heuristic.feature_vec_raw(h);
+				int h_score = heuristic.evaluate_feature_vec(fvH, weights);
+
+  			int player = (s.round % 2);
+				string turn = player == SENTE ? "Sente" : "Gote";
+
+				cout << "Grandmaster Drop Move for " << turn << endl;
+				cout << "     ";
+				printMove(grandmaster_move);
+				cout << "     H(p) = " << gm_score << endl;
+				cout << "     ";
+				cout << "Heuristic chose:  ";
+				printMove(move);
+				cout << "     H(p) = " << h_score << endl;
+			}
 
 			// See if grandmaster played a drop move
 			if (PLAYING == movePlaying(grandmaster_move)) {
@@ -345,7 +352,7 @@ int OrganismEvaluator::evaluate_synchronous(vector<int> weights, int& pos) {
 		int move = select_move(board, weights, positions);
 
 		// Log statistics about the selection
-		log_stats(board, move, grandmaster_move);
+		log_stats(board, move, grandmaster_move, weights);
 
 		// Compare selection with the choice of the grandmaster
 		if (move == grandmaster_move) {
@@ -446,9 +453,11 @@ int main() {
 		evaluator.set_num_eval(500);
     /* vector<int> weights(evaluator.get_num_features(), 1); */
 
-		vector<int> weights = {100, 340, 209, 675, 525, 886, 787, 970, 297, 313, 366, 163, 45, 630, 596, 824, 649,
-			980, 382, 808, 227, 75, 33, 10, 39, 26, 31, 56, 9, 22, 25, 1, 61, 51, 59, 60, 10, 54, 58, 22, 28, 20, 49,
-			23, 7, 24, 5, 44, 44, 58, 42, 16, 38, 14, 42, 19, 6, 45, 22, 35, 26, 9, 13, 8, 8, 0, 31, 2, 10, 42, 16, 13, 42, 25};
+		vector<int> weights = {
+    100, 340, 209, 675, 530, 886, 787, 970, 297, 313, 366, 188, 42, 649, 618, 824, 649, 980, 382, 855, 228,
+    75, 33, 10, 39, 5, 31, 56, 9, 22, 25, 1, 2, 60, 59, 60, 10, 54, 58, 22, 35, 20, 49, 20, 7, 24, 58, 44,
+    44, 58, 21, 23, 57, 14, 42, 19, 6, 45, 22, 29, 26, 9, 13, 8, 11, 0, 31, 50, 10, 21, 16, 14, 42, 6 };
+
 
 		evaluator.evaluate_organism(weights);
 		for (auto& e : evaluator.get_evaluation_stats()) {
